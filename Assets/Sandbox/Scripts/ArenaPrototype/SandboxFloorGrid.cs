@@ -18,9 +18,11 @@ namespace Sandbox.DreamBattle
         [Header("Effects")]
         [SerializeField] private float nightmareSlowFactor = 0.5f;
         [SerializeField] private float dreamDamagePerSecond = 5f;
+        [SerializeField] [Range(0.05f, 0.95f)] private float dreamThreshold = 0.55f;
 
         private Texture2D floorTexture;
         private Color32[] pixelBuffer;
+        private float[] dreamBuffer;
         private int texWidth;
         private int texHeight;
         private Vector2 gridOrigin;
@@ -135,6 +137,7 @@ namespace Sandbox.DreamBattle
 
             int total = texWidth * texHeight;
             pixelBuffer = new Color32[total];
+            dreamBuffer = new float[total];
             InitAllPixels();
 
             floorTexture.SetPixels32(pixelBuffer);
@@ -154,19 +157,41 @@ namespace Sandbox.DreamBattle
         /// <summary>Set all pixels within a circle to Dream.</summary>
         public void SetDreamCircle(Vector2 center, float radius)
         {
-            SetCirclePixels(center, radius, dreamColor32);
+            PaintDreamStamp(center, radius, 1f, 1f);
         }
 
         /// <summary>Set all pixels along a line segment to Dream.</summary>
         public void SetDreamLine(Vector2 from, Vector2 to, float width)
         {
-            SetLinePixels(from, to, width, dreamColor32);
+            float radius = Mathf.Max(0.01f, width * 0.5f);
+            PaintDreamStroke(from, to, radius, 1f, 0.78f, radius * 0.32f);
         }
 
         /// <summary>Set all pixels along a line segment to Nightmare.</summary>
         public void SetNightmareLine(Vector2 from, Vector2 to, float width)
         {
-            SetLinePixels(from, to, width, nightmareColor32);
+            float radius = Mathf.Max(0.01f, width * 0.5f);
+            PaintNightmareStroke(from, to, radius, 1f, 0.82f, radius * 0.4f);
+        }
+
+        public void PaintDreamStamp(Vector2 center, float radius, float opacity, float hardness)
+        {
+            PaintStamp(center, radius, opacity, hardness, true);
+        }
+
+        public void PaintNightmareStamp(Vector2 center, float radius, float opacity, float hardness)
+        {
+            PaintStamp(center, radius, opacity, hardness, false);
+        }
+
+        public void PaintDreamStroke(Vector2 from, Vector2 to, float radius, float opacity, float hardness, float spacing)
+        {
+            PaintStroke(from, to, radius, opacity, hardness, spacing, true);
+        }
+
+        public void PaintNightmareStroke(Vector2 from, Vector2 to, float radius, float opacity, float hardness, float spacing)
+        {
+            PaintStroke(from, to, radius, opacity, hardness, spacing, false);
         }
 
         /// <summary>Query color at world position.</summary>
@@ -181,43 +206,56 @@ namespace Sandbox.DreamBattle
         /// <summary>True if the pixel at worldPos is closer to dream than nightmare.</summary>
         public bool IsDreamAt(Vector2 worldPos)
         {
-            if (pixelBuffer == null) return false;
+            if (dreamBuffer == null) return false;
             int idx = PosToIndex(worldPos);
-            if (idx < 0 || idx >= pixelBuffer.Length) return false;
-            return IsDreamIndex(idx);
+            if (idx < 0 || idx >= dreamBuffer.Length) return false;
+            return dreamBuffer[idx] >= dreamThreshold;
         }
 
         // ── Internal painting ────────────────────────
 
-        private void SetCirclePixels(Vector2 center, float radius, Color32 target)
+        private void PaintStamp(Vector2 center, float radius, float opacity, float hardness, bool towardsDream)
         {
-            if (pixelBuffer == null) return;
+            if (pixelBuffer == null || dreamBuffer == null) return;
 
-            int cx = WorldToPixelX(center.x);
-            int cy = WorldToPixelY(center.y);
-            int rPx = Mathf.RoundToInt(radius * pixelsPerUnit);
+            radius = Mathf.Max(0.01f, radius);
+            opacity = Mathf.Clamp01(opacity);
+            hardness = Mathf.Clamp01(hardness);
+            if (opacity <= 0.0001f) return;
 
-            int pxMin = Mathf.Max(0, cx - rPx);
-            int pxMax = Mathf.Min(texWidth - 1, cx + rPx);
-            int pyMin = Mathf.Max(0, cy - rPx);
-            int pyMax = Mathf.Min(texHeight - 1, cy + rPx);
+            float cx = WorldToPixelFloatX(center.x);
+            float cy = WorldToPixelFloatY(center.y);
+            float radiusPx = radius * pixelsPerUnit;
+            int rPx = Mathf.CeilToInt(radiusPx);
 
-            float rPxSq = (float)rPx * rPx;
+            int pxMin = Mathf.Max(0, Mathf.FloorToInt(cx - rPx));
+            int pxMax = Mathf.Min(texWidth - 1, Mathf.CeilToInt(cx + rPx));
+            int pyMin = Mathf.Max(0, Mathf.FloorToInt(cy - rPx));
+            int pyMax = Mathf.Min(texHeight - 1, Mathf.CeilToInt(cy + rPx));
+
             bool changed = false;
 
             for (int py = pyMin; py <= pyMax; py++)
             {
-                float dy = py - cy;
-                float dySq = dy * dy;
+                float dy = (py + 0.5f) - cy;
                 for (int px = pxMin; px <= pxMax; px++)
                 {
-                    float dx = px - cx;
-                    if (dx * dx + dySq <= rPxSq)
+                    float dx = (px + 0.5f) - cx;
+                    float distance01 = Mathf.Sqrt(dx * dx + dy * dy) / radiusPx;
+                    if (distance01 <= 1f)
                     {
                         int idx = py * texWidth + px;
-                        if (!ValueEquals(pixelBuffer[idx], target))
+                        float falloff = EvaluateBrushFalloff(distance01, hardness);
+                        float current = dreamBuffer[idx];
+                        float next = towardsDream
+                            ? current + (1f - current) * opacity * falloff
+                            : current - current * opacity * falloff;
+                        next = Mathf.Clamp01(next);
+
+                        if (Mathf.Abs(next - current) > 0.0001f)
                         {
-                            pixelBuffer[idx] = target;
+                            dreamBuffer[idx] = next;
+                            pixelBuffer[idx] = SamplePaintColor(next);
                             changed = true;
                         }
                     }
@@ -227,60 +265,26 @@ namespace Sandbox.DreamBattle
             if (changed) textureDirty = true;
         }
 
-        private void SetLinePixels(Vector2 from, Vector2 to, float width, Color32 target)
+        private void PaintStroke(Vector2 from, Vector2 to, float radius, float opacity, float hardness, float spacing, bool towardsDream)
         {
-            if (pixelBuffer == null) return;
+            if (pixelBuffer == null || dreamBuffer == null) return;
 
-            float halfW = width * 0.5f;
+            radius = Mathf.Max(0.01f, radius);
+            spacing = Mathf.Max(radius * 0.15f, spacing);
             Vector2 dir = to - from;
             float len = dir.magnitude;
             if (len < 0.0001f)
             {
-                SetCirclePixels(from, halfW, target);
+                PaintStamp(from, radius, opacity, hardness, towardsDream);
                 return;
             }
 
-            Vector2 dirNorm = dir / len;
-
-            float minX = Mathf.Min(from.x, to.x) - halfW;
-            float maxX = Mathf.Max(from.x, to.x) + halfW;
-            float minY = Mathf.Min(from.y, to.y) - halfW;
-            float maxY = Mathf.Max(from.y, to.y) + halfW;
-
-            int pxMin = Mathf.Max(0, WorldToPixelX(minX));
-            int pxMax = Mathf.Min(texWidth - 1, WorldToPixelX(maxX));
-            int pyMin = Mathf.Max(0, WorldToPixelY(minY));
-            int pyMax = Mathf.Min(texHeight - 1, WorldToPixelY(maxY));
-
-            float halfWSq = halfW * halfW;
-            bool changed = false;
-
-            for (int py = pyMin; py <= pyMax; py++)
+            int stampCount = Mathf.Max(1, Mathf.CeilToInt(len / spacing));
+            for (int i = 0; i <= stampCount; i++)
             {
-                float worldY = PixelToWorldY(py);
-                for (int px = pxMin; px <= pxMax; px++)
-                {
-                    float worldX = PixelToWorldX(px);
-                    Vector2 point = new Vector2(worldX, worldY);
-
-                    Vector2 ap = point - from;
-                    float t = Mathf.Clamp01(Vector2.Dot(ap, dirNorm) / len);
-                    Vector2 closest = from + dirNorm * (t * len);
-                    float distSq = (point - closest).sqrMagnitude;
-
-                    if (distSq <= halfWSq)
-                    {
-                        int idx = py * texWidth + px;
-                        if (!ValueEquals(pixelBuffer[idx], target))
-                        {
-                            pixelBuffer[idx] = target;
-                            changed = true;
-                        }
-                    }
-                }
+                float t = i / (float)stampCount;
+                PaintStamp(Vector2.Lerp(from, to, t), radius, opacity, hardness, towardsDream);
             }
-
-            if (changed) textureDirty = true;
         }
 
         // ── Coordinate mapping ───────────────────────
@@ -293,6 +297,16 @@ namespace Sandbox.DreamBattle
         private int WorldToPixelY(float worldY)
         {
             return Mathf.RoundToInt((worldY - gridOrigin.y) / worldSize.y * texHeight);
+        }
+
+        private float WorldToPixelFloatX(float worldX)
+        {
+            return (worldX - gridOrigin.x) / worldSize.x * texWidth;
+        }
+
+        private float WorldToPixelFloatY(float worldY)
+        {
+            return (worldY - gridOrigin.y) / worldSize.y * texHeight;
         }
 
         private float PixelToWorldX(int px)
@@ -326,7 +340,7 @@ namespace Sandbox.DreamBattle
             for (int i = 0; i < pixelBuffer.Length; i += step)
             {
                 sampled++;
-                if (IsDreamIndex(i)) dreamCount += 1f;
+                dreamCount += dreamBuffer[i];
             }
 
             DreamPercentage = sampled > 0 ? dreamCount / sampled : 0f;
@@ -334,8 +348,7 @@ namespace Sandbox.DreamBattle
 
         private bool IsDreamIndex(int idx)
         {
-            Color32 c = pixelBuffer[idx];
-            return ColorDistSq(c, dreamColor32) < ColorDistSq(c, nightmareColor32);
+            return dreamBuffer[idx] >= dreamThreshold;
         }
 
         // ── Helpers ──────────────────────────────────
@@ -349,20 +362,28 @@ namespace Sandbox.DreamBattle
         private void InitAllPixels()
         {
             for (int i = 0; i < pixelBuffer.Length; i++)
+            {
+                dreamBuffer[i] = 0f;
                 pixelBuffer[i] = nightmareColor32;
+            }
         }
 
-        private static bool ValueEquals(Color32 a, Color32 b)
+        private float EvaluateBrushFalloff(float distance01, float hardness)
         {
-            return a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a;
+            if (distance01 >= 1f) return 0f;
+            if (distance01 <= hardness) return 1f;
+
+            float edgeT = Mathf.InverseLerp(1f, hardness, distance01);
+            return edgeT * edgeT * (3f - 2f * edgeT);
         }
 
-        private static float ColorDistSq(Color32 a, Color32 b)
+        private Color32 SamplePaintColor(float dreamAmount)
         {
-            float dr = a.r - b.r;
-            float dg = a.g - b.g;
-            float db = a.b - b.b;
-            return dr * dr + dg * dg + db * db;
+            byte r = (byte)Mathf.RoundToInt(Mathf.Lerp(nightmareColor32.r, dreamColor32.r, dreamAmount));
+            byte g = (byte)Mathf.RoundToInt(Mathf.Lerp(nightmareColor32.g, dreamColor32.g, dreamAmount));
+            byte b = (byte)Mathf.RoundToInt(Mathf.Lerp(nightmareColor32.b, dreamColor32.b, dreamAmount));
+            byte a = (byte)Mathf.RoundToInt(Mathf.Lerp(nightmareColor32.a, dreamColor32.a, dreamAmount));
+            return new Color32(r, g, b, a);
         }
 
         private Material CreateMaterial()
@@ -383,6 +404,7 @@ namespace Sandbox.DreamBattle
             worldSize.x = Mathf.Max(4f, worldSize.x);
             worldSize.y = Mathf.Max(4f, worldSize.y);
             pixelsPerUnit = Mathf.Clamp(pixelsPerUnit, 8f, 80f);
+            dreamThreshold = Mathf.Clamp(dreamThreshold, 0.05f, 0.95f);
         }
 
         private void OnDestroy()

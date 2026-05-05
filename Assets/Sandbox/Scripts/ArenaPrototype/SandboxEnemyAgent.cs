@@ -13,6 +13,9 @@ namespace Sandbox.DreamBattle
         [SerializeField] [HideInInspector] private float contactDamage = 1f;
         [SerializeField] [HideInInspector] private float paintWidth = 0.8f;
         [SerializeField] [HideInInspector] private float paintInterval = 0.25f;
+        [SerializeField] [HideInInspector] [Range(0.05f, 1f)] private float paintOpacity = 0.78f;
+        [SerializeField] [HideInInspector] [Range(0.05f, 0.95f)] private float paintHardness = 0.82f;
+        [SerializeField] [HideInInspector] [Range(0.1f, 0.9f)] private float paintSpacingRatio = 0.42f;
 
         [Header("References")]
         [SerializeField] private Transform playerTarget;
@@ -125,11 +128,24 @@ namespace Sandbox.DreamBattle
             Vector2 currentPos = transform.position;
             if (Vector2.Distance(currentPos, lastPaintPos) > 0.05f)
             {
-                floorGrid.SetNightmareLine(lastPaintPos, currentPos, paintWidth);
+                PaintNightmareTrailSegment(lastPaintPos, currentPos);
                 lastPaintPos = currentPos;
             }
 
             lastPaintTime = Time.time;
+        }
+
+        private void PaintNightmareTrailSegment(Vector2 from, Vector2 to)
+        {
+            float radius = Mathf.Max(0.05f, paintWidth * 0.5f);
+            float spacing = Mathf.Max(radius * paintSpacingRatio, 0.03f);
+
+            floorGrid.PaintNightmareStroke(from, to, radius, paintOpacity, paintHardness, spacing);
+            floorGrid.PaintNightmareStamp(
+                to,
+                radius * 0.92f,
+                Mathf.Clamp01(paintOpacity * 0.7f),
+                Mathf.Max(0.05f, paintHardness - 0.08f));
         }
 
         // ── Floor Effects ────────────────────────────
@@ -186,12 +202,18 @@ namespace Sandbox.DreamBattle
                 contactDamage = cfg.contactDamage;
                 paintWidth = cfg.paintWidth;
                 paintInterval = cfg.paintInterval;
+                paintOpacity = cfg.paintOpacity;
+                paintHardness = cfg.paintHardness;
+                paintSpacingRatio = cfg.paintSpacingRatio;
             }
 
             moveSpeed = Mathf.Max(0.1f, moveSpeed);
             contactDamage = Mathf.Max(0f, contactDamage);
             paintWidth = Mathf.Max(0.1f, paintWidth);
             paintInterval = Mathf.Max(0.05f, paintInterval);
+            paintOpacity = Mathf.Clamp01(paintOpacity);
+            paintHardness = Mathf.Clamp(paintHardness, 0.05f, 0.95f);
+            paintSpacingRatio = Mathf.Clamp(paintSpacingRatio, 0.1f, 0.9f);
         }
 
         public void ApplySettingsFromConfig()
@@ -224,6 +246,9 @@ namespace Sandbox.DreamBattle
             public float contactDamage = 1f;
             public float paintWidth = 0.8f;
             public float paintInterval = 0.25f;
+            public float paintOpacity = 0.78f;
+            public float paintHardness = 0.82f;
+            public float paintSpacingRatio = 0.42f;
         }
     }
 }

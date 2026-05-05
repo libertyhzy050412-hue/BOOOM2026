@@ -5,9 +5,15 @@
   // contactDamage: 碰撞伤害 (暂无碰撞判定，预留)
   // paintWidth: 移动涂噩梦尾迹宽度
   // paintInterval: 涂色间隔 (秒)，越小越密
+  // paintOpacity: 单次尾迹沉积强度
+  // paintHardness: 尾迹软硬边
+  // paintSpacingRatio: 尾迹 stamp 间距占半径的比例
   "maxHealth": 10.0,
   "moveSpeed": 3.0,
   "contactDamage": 1.0,
-  "paintWidth": 0.8,
-  "paintInterval": 0.25
+  "paintWidth": 0.82,
+  "paintInterval": 0.16,
+  "paintOpacity": 0.78,
+  "paintHardness": 0.82,
+  "paintSpacingRatio": 0.42
 }

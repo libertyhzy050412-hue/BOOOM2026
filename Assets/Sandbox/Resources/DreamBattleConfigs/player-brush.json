@@ -1,0 +1,26 @@
+{
+  // 玩家笔刷参数
+  // brushMinRadius: 快速拖拽时的最细半径
+  // brushMaxRadius: 常规移动/起笔时的基础半径
+  // brushStationaryMaxRadius: 按住不动时可扩散到的最大半径
+  // brushHardness: 软硬边，越大中心越实
+  // brushSpacingRatio: 连续 stamp 间距占半径的比例，越小越平滑
+  // brushStrokeFlowPerSecond: 移动时单位秒沉积强度
+  // brushStationaryFlowPerSecond: 停住时单位秒积墨强度
+  // brushSpreadPerSecond: 停住时每秒额外扩散半径
+  // brushThinSpeedStart / End: 鼠标速度映射到变细的区间
+  // fastMoveRadiusFactor: 高速时半径缩到基础半径的比例
+  // cursorSpeedSmoothing: 鼠标速度平滑速度
+  "brushMinRadius": 0.42,
+  "brushMaxRadius": 1.15,
+  "brushStationaryMaxRadius": 2.15,
+  "brushHardness": 0.56,
+  "brushSpacingRatio": 0.28,
+  "brushStrokeFlowPerSecond": 13.5,
+  "brushStationaryFlowPerSecond": 18.0,
+  "brushSpreadPerSecond": 1.05,
+  "brushThinSpeedStart": 2.0,
+  "brushThinSpeedEnd": 15.0,
+  "fastMoveRadiusFactor": 0.36,
+  "cursorSpeedSmoothing": 14.0
+}

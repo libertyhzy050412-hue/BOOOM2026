@@ -12,13 +12,24 @@ namespace Sandbox.DreamBattle
     {
         [Header("Movement")]
         [SerializeField] private string configPath = SandboxConfigPaths.PlayerMovement;
+        [SerializeField] private string brushConfigPath = SandboxConfigPaths.PlayerBrush;
         [SerializeField] [HideInInspector] private float moveSpeed = 6f;
         [SerializeField] [HideInInspector] private float acceleration = 30f;
         [SerializeField] [HideInInspector] private float deceleration = 36f;
 
         [Header("Pour Paint (Summon)")]
-        [SerializeField] private float paintAreaPerSecond = 8f;
-        [SerializeField] private float pourMaxRadius = 2.5f;
+        [SerializeField] [HideInInspector] private float brushMinRadius = 0.4f;
+        [SerializeField] [HideInInspector] private float brushMaxRadius = 1.2f;
+        [SerializeField] [HideInInspector] private float pourMaxRadius = 2.2f;
+        [SerializeField] [HideInInspector] [Range(0.05f, 0.95f)] private float brushHardness = 0.58f;
+        [SerializeField] [HideInInspector] [Range(0.1f, 0.9f)] private float brushSpacingRatio = 0.3f;
+        [SerializeField] [HideInInspector] private float brushStrokeFlowPerSecond = 14f;
+        [SerializeField] [HideInInspector] private float brushStationaryFlowPerSecond = 18f;
+        [SerializeField] [HideInInspector] private float brushSpreadPerSecond = 1.1f;
+        [SerializeField] [HideInInspector] private float brushThinSpeedStart = 2f;
+        [SerializeField] [HideInInspector] private float brushThinSpeedEnd = 16f;
+        [SerializeField] [HideInInspector] [Range(0.15f, 1f)] private float fastMoveRadiusFactor = 0.38f;
+        [SerializeField] [HideInInspector] private float cursorSpeedSmoothing = 14f;
 
         [Header("Footstep Paint")]
         [SerializeField] private float footstepWidth = 1.2f;
@@ -43,6 +54,9 @@ namespace Sandbox.DreamBattle
         private float pourRadius;
         private Vector2 lastPourPos;
         private bool hasLastPourPos;
+        private float lastPourStampRadius;
+        private float smoothedCursorSpeed;
+        private float stationaryPourTime;
         private Vector2 lastFootstepPos;
         private float lastFootstepTime;
 
@@ -56,6 +70,7 @@ namespace Sandbox.DreamBattle
         public Vector2 MouseWorldPos => mouseWorldPos;
         public float PourRadius => pourRadius;
         public float PourMaxRadius => pourMaxRadius;
+        public float BrushPreviewRadius => fireHeld ? pourRadius : brushMaxRadius;
 
         // ── Lifecycle ────────────────────────────────
 
@@ -71,6 +86,7 @@ namespace Sandbox.DreamBattle
             SetupRigidbody();
             vitals = GetComponent<SandboxActorVitals>();
             lastFootstepPos = transform.position;
+            lastPourStampRadius = brushMaxRadius;
             if (spriteRenderer != null) baseColor = spriteRenderer.color;
         }
 
@@ -83,6 +99,10 @@ namespace Sandbox.DreamBattle
         {
             if (vitals != null) vitals.Damaged -= OnDamaged;
             isFlashing = false;
+            fireHeld = false;
+            pourRadius = 0f;
+            hasLastPourPos = false;
+            stationaryPourTime = 0f;
         }
 
         private void OnValidate() { LoadConfig(); }
@@ -154,35 +174,103 @@ namespace Sandbox.DreamBattle
             if (Mouse.current == null || floorGrid == null) return;
 
             fireHeld = Mouse.current.leftButton.isPressed;
+            Vector2 pos = mouseWorldPos;
 
             if (fireHeld)
             {
-                Vector2 pos = mouseWorldPos;
+                float dt = Mathf.Max(Time.deltaTime, 0.0001f);
 
-                // Connect frames with a line to bridge fast cursor movement
-                if (hasLastPourPos && Vector2.Distance(pos, lastPourPos) > 0.01f)
+                if (!hasLastPourPos)
                 {
-                    float lineWidth = Mathf.Max(pourRadius * 1.6f, 0.6f);
-                    floorGrid.SetDreamLine(lastPourPos, pos, lineWidth);
+                    float startRadius = brushMaxRadius;
+                    floorGrid.PaintDreamStamp(
+                        pos,
+                        startRadius,
+                        ComputeBrushOpacity(brushStationaryFlowPerSecond, dt),
+                        brushHardness);
+
+                    pourRadius = startRadius;
+                    lastPourPos = pos;
+                    lastPourStampRadius = startRadius;
+                    hasLastPourPos = true;
+                    stationaryPourTime = 0f;
+                    return;
                 }
 
-                // Expand pour radius continuously — no reset on cursor move
-                float currentArea = Mathf.PI * pourRadius * pourRadius;
-                float newArea = currentArea + paintAreaPerSecond * Time.deltaTime;
-                pourRadius = Mathf.Sqrt(newArea / Mathf.PI);
-                pourRadius = Mathf.Min(pourRadius, pourMaxRadius);
+                float cursorDistance = Vector2.Distance(pos, lastPourPos);
+                float rawCursorSpeed = cursorDistance / dt;
+                float speedLerp = 1f - Mathf.Exp(-cursorSpeedSmoothing * dt);
+                smoothedCursorSpeed = Mathf.Lerp(smoothedCursorSpeed, rawCursorSpeed, speedLerp);
 
-                floorGrid.SetDreamCircle(pos, pourRadius);
+                float thin01 = Mathf.InverseLerp(brushThinSpeedStart, brushThinSpeedEnd, smoothedCursorSpeed);
+                float targetRadius = Mathf.Lerp(brushMaxRadius, brushMaxRadius * fastMoveRadiusFactor, thin01);
+                targetRadius = Mathf.Clamp(targetRadius, brushMinRadius, brushMaxRadius);
+
+                float stationaryThreshold = Mathf.Max(targetRadius * brushSpacingRatio, 0.02f);
+                if (cursorDistance <= stationaryThreshold)
+                {
+                    stationaryPourTime += dt;
+                    float buildupRadius = Mathf.Min(targetRadius + stationaryPourTime * brushSpreadPerSecond, pourMaxRadius);
+                    floorGrid.PaintDreamStamp(
+                        pos,
+                        buildupRadius,
+                        ComputeBrushOpacity(brushStationaryFlowPerSecond, dt),
+                        brushHardness);
+
+                    pourRadius = buildupRadius;
+                    lastPourStampRadius = buildupRadius;
+                }
+                else
+                {
+                    stationaryPourTime = 0f;
+                    PaintDreamStroke(lastPourPos, pos, lastPourStampRadius, targetRadius);
+                    pourRadius = targetRadius;
+                    lastPourStampRadius = targetRadius;
+                }
 
                 lastPourPos = pos;
-                hasLastPourPos = true;
             }
             else
             {
                 pourRadius = 0f;
                 hasLastPourPos = false;
+                lastPourStampRadius = brushMaxRadius;
+                stationaryPourTime = 0f;
             }
 #endif
+        }
+
+        private void PaintDreamStroke(Vector2 from, Vector2 to, float fromRadius, float toRadius)
+        {
+            float distance = Vector2.Distance(from, to);
+            if (distance <= 0.0001f)
+            {
+                floorGrid.PaintDreamStamp(
+                    to,
+                    toRadius,
+                    ComputeBrushOpacity(brushStrokeFlowPerSecond, Time.deltaTime),
+                    brushHardness);
+                return;
+            }
+
+            float averageRadius = Mathf.Max(0.01f, (fromRadius + toRadius) * 0.5f);
+            float spacing = Mathf.Max(averageRadius * brushSpacingRatio, 0.03f);
+            int stampCount = Mathf.Max(1, Mathf.CeilToInt(distance / spacing));
+            float stampDeltaTime = Mathf.Max(Time.deltaTime / (stampCount + 1), 0.0001f);
+            float opacity = ComputeBrushOpacity(brushStrokeFlowPerSecond, stampDeltaTime);
+
+            for (int i = 1; i <= stampCount; i++)
+            {
+                float t = i / (float)stampCount;
+                Vector2 stampPos = Vector2.Lerp(from, to, t);
+                float radius = Mathf.Lerp(fromRadius, toRadius, t);
+                floorGrid.PaintDreamStamp(stampPos, radius, opacity, brushHardness);
+            }
+        }
+
+        private static float ComputeBrushOpacity(float flowPerSecond, float deltaTime)
+        {
+            return 1f - Mathf.Exp(-Mathf.Max(0f, flowPerSecond) * Mathf.Max(0f, deltaTime));
         }
 
         // ── Footstep Paint ───────────────────────────
@@ -195,7 +283,8 @@ namespace Sandbox.DreamBattle
             Vector2 pos = transform.position;
             if (moveInput.sqrMagnitude > 0.001f && Vector2.Distance(pos, lastFootstepPos) > 0.02f)
             {
-                floorGrid.SetDreamLine(lastFootstepPos, pos, footstepWidth);
+                float footstepRadius = Mathf.Max(0.05f, footstepWidth * 0.5f);
+                floorGrid.PaintDreamStroke(lastFootstepPos, pos, footstepRadius, 0.72f, 0.82f, footstepRadius * 0.28f);
                 lastFootstepPos = pos;
                 lastFootstepTime = Time.time;
             }
@@ -251,9 +340,38 @@ namespace Sandbox.DreamBattle
                 acceleration = cfg.acceleration;
                 deceleration = cfg.deceleration;
             }
+
+            if (SandboxDreamBattleConfigLoader.TryLoad(brushConfigPath, out PlayerBrushConfig brushCfg))
+            {
+                brushMinRadius = brushCfg.brushMinRadius;
+                brushMaxRadius = brushCfg.brushMaxRadius;
+                pourMaxRadius = brushCfg.brushStationaryMaxRadius;
+                brushHardness = brushCfg.brushHardness;
+                brushSpacingRatio = brushCfg.brushSpacingRatio;
+                brushStrokeFlowPerSecond = brushCfg.brushStrokeFlowPerSecond;
+                brushStationaryFlowPerSecond = brushCfg.brushStationaryFlowPerSecond;
+                brushSpreadPerSecond = brushCfg.brushSpreadPerSecond;
+                brushThinSpeedStart = brushCfg.brushThinSpeedStart;
+                brushThinSpeedEnd = brushCfg.brushThinSpeedEnd;
+                fastMoveRadiusFactor = brushCfg.fastMoveRadiusFactor;
+                cursorSpeedSmoothing = brushCfg.cursorSpeedSmoothing;
+            }
+
             moveSpeed = Mathf.Max(0.1f, moveSpeed);
             acceleration = Mathf.Max(0f, acceleration);
             deceleration = Mathf.Max(0f, deceleration);
+            brushMinRadius = Mathf.Max(0.05f, brushMinRadius);
+            brushMaxRadius = Mathf.Max(brushMinRadius, brushMaxRadius);
+            pourMaxRadius = Mathf.Max(brushMaxRadius, pourMaxRadius);
+            brushHardness = Mathf.Clamp(brushHardness, 0.05f, 0.95f);
+            brushSpacingRatio = Mathf.Clamp(brushSpacingRatio, 0.1f, 0.9f);
+            brushStrokeFlowPerSecond = Mathf.Max(0.1f, brushStrokeFlowPerSecond);
+            brushStationaryFlowPerSecond = Mathf.Max(0.1f, brushStationaryFlowPerSecond);
+            brushSpreadPerSecond = Mathf.Max(0f, brushSpreadPerSecond);
+            brushThinSpeedStart = Mathf.Max(0f, brushThinSpeedStart);
+            brushThinSpeedEnd = Mathf.Max(brushThinSpeedStart + 0.01f, brushThinSpeedEnd);
+            fastMoveRadiusFactor = Mathf.Clamp(fastMoveRadiusFactor, 0.15f, 1f);
+            cursorSpeedSmoothing = Mathf.Max(0.1f, cursorSpeedSmoothing);
         }
 
         [System.Serializable]
@@ -262,6 +380,23 @@ namespace Sandbox.DreamBattle
             public float moveSpeed = 6f;
             public float acceleration = 30f;
             public float deceleration = 36f;
+        }
+
+        [System.Serializable]
+        private class PlayerBrushConfig
+        {
+            public float brushMinRadius = 0.4f;
+            public float brushMaxRadius = 1.2f;
+            public float brushStationaryMaxRadius = 2.2f;
+            public float brushHardness = 0.58f;
+            public float brushSpacingRatio = 0.3f;
+            public float brushStrokeFlowPerSecond = 14f;
+            public float brushStationaryFlowPerSecond = 18f;
+            public float brushSpreadPerSecond = 1.1f;
+            public float brushThinSpeedStart = 2f;
+            public float brushThinSpeedEnd = 16f;
+            public float fastMoveRadiusFactor = 0.38f;
+            public float cursorSpeedSmoothing = 14f;
         }
     }
 }

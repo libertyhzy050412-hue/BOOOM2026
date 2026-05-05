@@ -12,6 +12,7 @@ namespace Sandbox.DreamBattle
     {
         [Header("Ring")]
         [SerializeField] private float radius = 0.5f;
+        [SerializeField] private SandboxPlayerController playerController;
         [SerializeField] private Color ringColor = new Color(1f, 0.9f, 0.35f, 0.85f);
         [SerializeField] [Range(0.02f, 0.3f)] private float lineWidth = 0.06f;
         [SerializeField] [Range(16, 128)] private int segments = 64;
@@ -49,6 +50,7 @@ namespace Sandbox.DreamBattle
         private void Update()
         {
             FollowMouse();
+            UpdateRadius();
         }
 
         // ── Build ────────────────────────────────────
@@ -158,6 +160,21 @@ namespace Sandbox.DreamBattle
             worldPos.z = transform.position.z;
             transform.position = worldPos;
 #endif
+        }
+
+        private void UpdateRadius()
+        {
+            if (playerController == null)
+                playerController = FindFirstObjectByType<SandboxPlayerController>();
+
+            if (playerController == null) return;
+
+            float targetRadius = Mathf.Max(0.05f, playerController.BrushPreviewRadius);
+            float nextRadius = Mathf.Lerp(radius, targetRadius, 1f - Mathf.Exp(-18f * Time.deltaTime));
+            if (Mathf.Abs(nextRadius - radius) < 0.005f) return;
+
+            radius = nextRadius;
+            RefreshRingVisuals();
         }
 
         // ── Material ─────────────────────────────────

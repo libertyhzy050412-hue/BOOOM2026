@@ -8,6 +8,7 @@ namespace Sandbox.DreamBattle
     {
         public const string FloorGrid = "DreamBattleConfigs/floor-grid";
         public const string PlayerMovement = "DreamBattleConfigs/player-movement";
+        public const string PlayerBrush = "DreamBattleConfigs/player-brush";
 
         public const string EnemyBasic = "DreamBattleConfigs/enemy-basic";
         public const string EnemySpawner = "DreamBattleConfigs/enemy-spawner";
