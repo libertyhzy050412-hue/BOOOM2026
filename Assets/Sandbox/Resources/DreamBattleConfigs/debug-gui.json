@@ -1,0 +1,11 @@
+{
+  // 调试 GUI 布局
+  // panelX/Y: 面板左上角屏幕坐标
+  // panelWidth/Height: 面板尺寸
+  // padding: 内边距
+  "panelX": 12,
+  "panelY": 12,
+  "panelWidth": 320,
+  "panelHeight": 220,
+  "padding": 12
+}

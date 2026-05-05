@@ -1,0 +1,15 @@
+{
+  // 刷怪器参数
+  // initialDelay: 首波延迟 (秒)
+  // spawnInterval: 刷怪间隔 (秒)
+  // maxActive: 最大同时存活数
+  // spawnInset: 生成点距边界内缩距离
+  // usePool: 是否启用对象池
+  // poolWarmCount: 预热数量
+  "initialDelay": 1.0,
+  "spawnInterval": 1.5,
+  "maxActive": 15,
+  "spawnInset": 1.5,
+  "usePool": true,
+  "poolWarmCount": 10
+}

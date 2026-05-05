@@ -1,0 +1,7 @@
+{
+  // 地板网格配置
+  // worldSize: 世界空间尺寸 (x=宽, y=高)
+  // gridResolution: 网格细分精度 (越高越平滑，性能开销越大)
+  "worldSize": { "x": 30, "y": 18 },
+  "gridResolution": 100
+}

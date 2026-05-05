@@ -1,0 +1,9 @@
+{
+  // 玩家移动参数
+  // moveSpeed: 最大移动速度
+  // acceleration: 加速度 (值越大越快达到满速)
+  // deceleration: 减速度 (值越大松开按键后越快停下)
+  "moveSpeed": 6.0,
+  "acceleration": 30.0,
+  "deceleration": 36.0
+}

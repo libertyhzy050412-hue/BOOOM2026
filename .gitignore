@@ -1,0 +1,41 @@
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+
+# Addressables / generated content
+Assets/AddressableAssetsData/*/*.bin*
+
+# Visual Studio / Rider / VS Code generated
+*.csproj
+*.sln
+*.slnx
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity generated meta for IDE files
+*.csproj.meta
+*.sln.meta
+*.slnx.meta
+
+# Crash reports
+sysinfo.txt
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+
+# Local tooling
+.claude/
+.vscode/
