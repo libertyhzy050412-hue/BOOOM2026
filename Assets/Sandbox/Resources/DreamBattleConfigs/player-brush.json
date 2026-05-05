@@ -11,6 +11,10 @@
   // brushThinSpeedStart / End: 鼠标速度映射到变细的区间
   // fastMoveRadiusFactor: 高速时半径缩到基础半径的比例
   // cursorSpeedSmoothing: 鼠标速度平滑速度
+  // fastStrokeMinOpacity: 高速拖拽时，软边主体至少保留的沉积强度
+  // fastStrokeCoreOpacity: 高速拖拽时，中心实心内核的保底强度
+  // fastStrokeCoreRadiusFactor: 实心内核半径占当前笔刷半径的比例
+  // fastStrokeOpacityBoost: 速度越快额外提升的可读性补偿
   "brushMinRadius": 0.42,
   "brushMaxRadius": 1.15,
   "brushStationaryMaxRadius": 2.15,
@@ -22,5 +26,9 @@
   "brushThinSpeedStart": 2.0,
   "brushThinSpeedEnd": 15.0,
   "fastMoveRadiusFactor": 0.36,
-  "cursorSpeedSmoothing": 14.0
+  "cursorSpeedSmoothing": 14.0,
+  "fastStrokeMinOpacity": 0.3,
+  "fastStrokeCoreOpacity": 0.64,
+  "fastStrokeCoreRadiusFactor": 0.58,
+  "fastStrokeOpacityBoost": 0.16
 }

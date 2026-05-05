@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Collections;
 
 namespace Sandbox.DreamBattle
 {
@@ -27,11 +28,19 @@ namespace Sandbox.DreamBattle
         [SerializeField] private Color onNightmareTint = Color.white;
 
         [Header("Hit Feedback")]
-        [SerializeField] private Color hitFlashColor = Color.white;
+        [SerializeField] private Color hitFlashColor = new Color(1f, 0.2f, 0.2f, 1f);
         [SerializeField] private float hitFlashDuration = 0.12f;
         [SerializeField] private float hitFlashCooldown = 0.15f;
 
+        [Header("Death Feedback")]
+        [SerializeField] private Color deathFlashColor = new Color(1f, 0.3f, 0.3f, 1f);
+        [SerializeField] private float deathFeedbackDuration = 0.18f;
+        [SerializeField] private float deathScaleMultiplier = 1.18f;
+        [SerializeField] private float deathHitStopDuration = 0.035f;
+        [SerializeField] [Range(0.01f, 1f)] private float deathHitStopTimeScale = 0.08f;
+
         private Rigidbody2D cachedRigidbody;
+        private Collider2D[] cachedColliders;
         private SandboxActorVitals vitals;
         private Vector2 lastPaintPos;
         private float lastPaintTime;
@@ -39,6 +48,12 @@ namespace Sandbox.DreamBattle
         private float nextHitFlashAllowedTime;
         private float hitFlashEndTime;
         private bool isFlashing;
+        private Coroutine deathFeedbackRoutine;
+        private Vector3 initialLocalScale;
+        private bool deathHitStopApplied;
+
+        private static int activeDeathHitStopCount;
+        private static float cachedTimeScale = 1f;
 
         // Events for spawner integration
         public event Action<SandboxEnemyAgent> OnDespawnRequested;
@@ -50,7 +65,9 @@ namespace Sandbox.DreamBattle
         private void Awake()
         {
             cachedRigidbody = GetComponent<Rigidbody2D>();
+            cachedColliders = GetComponents<Collider2D>();
             vitals = GetComponent<SandboxActorVitals>();
+            initialLocalScale = transform.localScale;
         }
 
         private void OnEnable()
@@ -61,6 +78,10 @@ namespace Sandbox.DreamBattle
             isDead = false;
             lastPaintPos = transform.position;
             lastPaintTime = 0f;
+            nextHitFlashAllowedTime = 0f;
+            isFlashing = false;
+            ResetVisualState();
+            SetCollidersEnabled(true);
 
             vitals.Died += OnDied;
         }
@@ -70,8 +91,16 @@ namespace Sandbox.DreamBattle
             vitals.Died -= OnDied;
             isFlashing = false;
 
-            if (spriteRenderer != null)
-                spriteRenderer.color = onNightmareTint;
+            if (deathFeedbackRoutine != null)
+            {
+                StopCoroutine(deathFeedbackRoutine);
+                deathFeedbackRoutine = null;
+            }
+
+            RestoreDeathHitStopIfNeeded();
+
+            SetCollidersEnabled(true);
+            ResetVisualState();
         }
 
         private void OnValidate()
@@ -101,7 +130,8 @@ namespace Sandbox.DreamBattle
         public void TakeDamage(float amount)
         {
             if (isDead) return;
-            vitals.ApplyDamage(amount);
+            bool tookDamage = vitals.ApplyDamage(amount);
+            if (!tookDamage || vitals.IsDead) return;
 
             if (Time.time >= nextHitFlashAllowedTime)
             {
@@ -113,9 +143,18 @@ namespace Sandbox.DreamBattle
 
         private void OnDied()
         {
+            if (isDead) return;
+
             isDead = true;
+            vitals.SetDamageEnabled(false);
             cachedRigidbody.linearVelocity = Vector2.zero;
-            OnDespawnRequested?.Invoke(this);
+            isFlashing = false;
+            SetCollidersEnabled(false);
+
+            if (deathFeedbackRoutine != null)
+                StopCoroutine(deathFeedbackRoutine);
+
+            deathFeedbackRoutine = StartCoroutine(PlayDeathFeedback());
         }
 
         // ── Painting ─────────────────────────────────
@@ -161,6 +200,7 @@ namespace Sandbox.DreamBattle
             {
                 float dotDamage = floorGrid.DreamDamagePerSecond * Time.deltaTime;
                 vitals.ApplyDamage(dotDamage);
+                if (vitals.IsDead) return;
             }
 
             // Slow on dream tiles
@@ -214,6 +254,97 @@ namespace Sandbox.DreamBattle
             paintOpacity = Mathf.Clamp01(paintOpacity);
             paintHardness = Mathf.Clamp(paintHardness, 0.05f, 0.95f);
             paintSpacingRatio = Mathf.Clamp(paintSpacingRatio, 0.1f, 0.9f);
+            deathFeedbackDuration = Mathf.Max(0.05f, deathFeedbackDuration);
+            deathScaleMultiplier = Mathf.Max(1f, deathScaleMultiplier);
+            deathHitStopDuration = Mathf.Max(0f, deathHitStopDuration);
+            deathHitStopTimeScale = Mathf.Clamp(deathHitStopTimeScale, 0.01f, 1f);
+        }
+
+        private IEnumerator PlayDeathFeedback()
+        {
+            if (spriteRenderer == null)
+            {
+                deathFeedbackRoutine = null;
+                OnDespawnRequested?.Invoke(this);
+                yield break;
+            }
+
+            yield return PlayDeathHitStop();
+
+            Color startColor = Color.Lerp(spriteRenderer.color, deathFlashColor, 0.9f);
+            Color endColor = new Color(startColor.r, startColor.g, startColor.b, 0f);
+            Vector3 endScale = initialLocalScale * deathScaleMultiplier;
+            float elapsed = 0f;
+
+            while (elapsed < deathFeedbackDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / deathFeedbackDuration);
+                float eased = 1f - Mathf.Pow(1f - t, 3f);
+
+                spriteRenderer.color = Color.Lerp(startColor, endColor, eased);
+                transform.localScale = Vector3.Lerp(initialLocalScale, endScale, eased);
+                yield return null;
+            }
+
+            spriteRenderer.color = endColor;
+            transform.localScale = endScale;
+            deathFeedbackRoutine = null;
+            OnDespawnRequested?.Invoke(this);
+        }
+
+        private IEnumerator PlayDeathHitStop()
+        {
+            if (deathHitStopDuration <= 0f || deathHitStopTimeScale >= 0.999f)
+                yield break;
+
+            if (activeDeathHitStopCount == 0)
+            {
+                cachedTimeScale = Time.timeScale;
+                Time.timeScale = cachedTimeScale * deathHitStopTimeScale;
+            }
+
+            activeDeathHitStopCount++;
+            deathHitStopApplied = true;
+
+            yield return new WaitForSecondsRealtime(deathHitStopDuration);
+
+            RestoreDeathHitStopIfNeeded();
+        }
+
+        private void RestoreDeathHitStopIfNeeded()
+        {
+            if (!deathHitStopApplied)
+                return;
+
+            deathHitStopApplied = false;
+            activeDeathHitStopCount = Mathf.Max(0, activeDeathHitStopCount - 1);
+
+            if (activeDeathHitStopCount == 0)
+            {
+                Time.timeScale = cachedTimeScale;
+            }
+        }
+
+        private void ResetVisualState()
+        {
+            transform.localScale = initialLocalScale;
+
+            if (spriteRenderer == null) return;
+
+            Color resetColor = onNightmareTint;
+            resetColor.a = 1f;
+            spriteRenderer.color = resetColor;
+        }
+
+        private void SetCollidersEnabled(bool enabled)
+        {
+            if (cachedColliders == null) return;
+
+            for (int i = 0; i < cachedColliders.Length; i++)
+            {
+                cachedColliders[i].enabled = enabled;
+            }
         }
 
         public void ApplySettingsFromConfig()

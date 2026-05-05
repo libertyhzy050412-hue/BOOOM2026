@@ -30,6 +30,10 @@ namespace Sandbox.DreamBattle
         [SerializeField] [HideInInspector] private float brushThinSpeedEnd = 16f;
         [SerializeField] [HideInInspector] [Range(0.15f, 1f)] private float fastMoveRadiusFactor = 0.38f;
         [SerializeField] [HideInInspector] private float cursorSpeedSmoothing = 14f;
+        [SerializeField] [HideInInspector] [Range(0.05f, 1f)] private float fastStrokeMinOpacity = 0.28f;
+        [SerializeField] [HideInInspector] [Range(0.05f, 1f)] private float fastStrokeCoreOpacity = 0.62f;
+        [SerializeField] [HideInInspector] [Range(0.2f, 0.95f)] private float fastStrokeCoreRadiusFactor = 0.55f;
+        [SerializeField] [HideInInspector] [Range(0.05f, 0.5f)] private float fastStrokeOpacityBoost = 0.18f;
 
         [Header("Footstep Paint")]
         [SerializeField] private float footstepWidth = 1.2f;
@@ -55,6 +59,7 @@ namespace Sandbox.DreamBattle
         private Vector2 lastPourPos;
         private bool hasLastPourPos;
         private float lastPourStampRadius;
+        private float lastPourThin01;
         private float smoothedCursorSpeed;
         private float stationaryPourTime;
         private Vector2 lastFootstepPos;
@@ -192,6 +197,7 @@ namespace Sandbox.DreamBattle
                     pourRadius = startRadius;
                     lastPourPos = pos;
                     lastPourStampRadius = startRadius;
+                    lastPourThin01 = 0f;
                     hasLastPourPos = true;
                     stationaryPourTime = 0f;
                     return;
@@ -223,11 +229,12 @@ namespace Sandbox.DreamBattle
                 else
                 {
                     stationaryPourTime = 0f;
-                    PaintDreamStroke(lastPourPos, pos, lastPourStampRadius, targetRadius);
+                    PaintDreamStroke(lastPourPos, pos, lastPourStampRadius, targetRadius, lastPourThin01, thin01);
                     pourRadius = targetRadius;
                     lastPourStampRadius = targetRadius;
                 }
 
+                lastPourThin01 = thin01;
                 lastPourPos = pos;
             }
             else
@@ -235,21 +242,28 @@ namespace Sandbox.DreamBattle
                 pourRadius = 0f;
                 hasLastPourPos = false;
                 lastPourStampRadius = brushMaxRadius;
+                lastPourThin01 = 0f;
                 stationaryPourTime = 0f;
             }
 #endif
         }
 
-        private void PaintDreamStroke(Vector2 from, Vector2 to, float fromRadius, float toRadius)
+        private void PaintDreamStroke(Vector2 from, Vector2 to, float fromRadius, float toRadius, float fromThin01, float toThin01)
         {
             float distance = Vector2.Distance(from, to);
             if (distance <= 0.0001f)
             {
+                float singleOpacity = ComputeReadableStrokeOpacity(
+                    ComputeBrushOpacity(brushStrokeFlowPerSecond, Time.deltaTime),
+                    toThin01);
+
                 floorGrid.PaintDreamStamp(
                     to,
                     toRadius,
-                    ComputeBrushOpacity(brushStrokeFlowPerSecond, Time.deltaTime),
+                    singleOpacity,
                     brushHardness);
+
+                PaintDreamStrokeCore(to, toRadius, toThin01);
                 return;
             }
 
@@ -257,15 +271,33 @@ namespace Sandbox.DreamBattle
             float spacing = Mathf.Max(averageRadius * brushSpacingRatio, 0.03f);
             int stampCount = Mathf.Max(1, Mathf.CeilToInt(distance / spacing));
             float stampDeltaTime = Mathf.Max(Time.deltaTime / (stampCount + 1), 0.0001f);
-            float opacity = ComputeBrushOpacity(brushStrokeFlowPerSecond, stampDeltaTime);
+            float baseOpacity = ComputeBrushOpacity(brushStrokeFlowPerSecond, stampDeltaTime);
 
-            for (int i = 1; i <= stampCount; i++)
+            for (int i = 0; i <= stampCount; i++)
             {
                 float t = i / (float)stampCount;
                 Vector2 stampPos = Vector2.Lerp(from, to, t);
                 float radius = Mathf.Lerp(fromRadius, toRadius, t);
+                float thin01 = Mathf.Lerp(fromThin01, toThin01, t);
+                float opacity = ComputeReadableStrokeOpacity(baseOpacity, thin01);
                 floorGrid.PaintDreamStamp(stampPos, radius, opacity, brushHardness);
+                PaintDreamStrokeCore(stampPos, radius, thin01);
             }
+        }
+
+        private void PaintDreamStrokeCore(Vector2 stampPos, float radius, float thin01)
+        {
+            float coreRadius = Mathf.Max(brushMinRadius * 0.45f, radius * fastStrokeCoreRadiusFactor);
+            float coreOpacity = Mathf.Clamp01(fastStrokeCoreOpacity + fastStrokeOpacityBoost * thin01 * 0.5f);
+            float coreHardness = Mathf.Clamp01(Mathf.Lerp(brushHardness, 0.96f, 0.7f));
+
+            floorGrid.PaintDreamStamp(stampPos, coreRadius, coreOpacity, coreHardness);
+        }
+
+        private float ComputeReadableStrokeOpacity(float baseOpacity, float thin01)
+        {
+            float boostedFloor = fastStrokeMinOpacity + fastStrokeOpacityBoost * thin01;
+            return Mathf.Clamp01(Mathf.Max(baseOpacity, boostedFloor));
         }
 
         private static float ComputeBrushOpacity(float flowPerSecond, float deltaTime)
@@ -355,6 +387,10 @@ namespace Sandbox.DreamBattle
                 brushThinSpeedEnd = brushCfg.brushThinSpeedEnd;
                 fastMoveRadiusFactor = brushCfg.fastMoveRadiusFactor;
                 cursorSpeedSmoothing = brushCfg.cursorSpeedSmoothing;
+                fastStrokeMinOpacity = brushCfg.fastStrokeMinOpacity;
+                fastStrokeCoreOpacity = brushCfg.fastStrokeCoreOpacity;
+                fastStrokeCoreRadiusFactor = brushCfg.fastStrokeCoreRadiusFactor;
+                fastStrokeOpacityBoost = brushCfg.fastStrokeOpacityBoost;
             }
 
             moveSpeed = Mathf.Max(0.1f, moveSpeed);
@@ -372,6 +408,10 @@ namespace Sandbox.DreamBattle
             brushThinSpeedEnd = Mathf.Max(brushThinSpeedStart + 0.01f, brushThinSpeedEnd);
             fastMoveRadiusFactor = Mathf.Clamp(fastMoveRadiusFactor, 0.15f, 1f);
             cursorSpeedSmoothing = Mathf.Max(0.1f, cursorSpeedSmoothing);
+            fastStrokeMinOpacity = Mathf.Clamp01(fastStrokeMinOpacity);
+            fastStrokeCoreOpacity = Mathf.Clamp01(fastStrokeCoreOpacity);
+            fastStrokeCoreRadiusFactor = Mathf.Clamp(fastStrokeCoreRadiusFactor, 0.2f, 0.95f);
+            fastStrokeOpacityBoost = Mathf.Clamp(fastStrokeOpacityBoost, 0.05f, 0.5f);
         }
 
         [System.Serializable]
@@ -397,6 +437,10 @@ namespace Sandbox.DreamBattle
             public float brushThinSpeedEnd = 16f;
             public float fastMoveRadiusFactor = 0.38f;
             public float cursorSpeedSmoothing = 14f;
+            public float fastStrokeMinOpacity = 0.28f;
+            public float fastStrokeCoreOpacity = 0.62f;
+            public float fastStrokeCoreRadiusFactor = 0.55f;
+            public float fastStrokeOpacityBoost = 0.18f;
         }
     }
 }
