@@ -276,7 +276,7 @@ MonoBehaviour:
   followTargetName: Player
   centerOnMapWhenNoTarget: 1
   followOffset: {x: 0, y: 0}
-  followSmoothness: 10
+  followSmoothness: 5
   orthographicSize: 8
   minOrthographicSize: 3
   maxOrthographicSize: 20
@@ -322,6 +322,9 @@ MonoBehaviour:
   mapRoot: {fileID: 0}
   mapRootName: MapRoot
   loadOnStart: 1
+  mergeColliders: 1
+  colliderRootName: Collider
+  globalPhysicsRootName: GlobalWorldPhysicsRoot
 --- !u!4 &1105370557
 Transform:
   m_ObjectHideFlags: 0
