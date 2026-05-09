@@ -167,6 +167,62 @@ public sealed class WorldRevealMaskController : MonoBehaviour
         return hasBounds;
     }
 
+    public bool TryGetRandomRevealedPosition(out Vector3 worldPosition, float minAlpha01 = 0.05f, int randomAttempts = 32)
+    {
+        worldPosition = default;
+        if (!TryEnsureRevealMask() || maskPixels == null || maskPixels.Length == 0)
+        {
+            return false;
+        }
+
+        byte minAlpha = (byte)Mathf.RoundToInt(Mathf.Clamp01(Mathf.Max(minAlpha01, alphaCutoff)) * 255f);
+        int totalPixels = maskPixels.Length;
+        int clampedAttempts = Mathf.Max(1, randomAttempts);
+
+        for (int attempt = 0; attempt < clampedAttempts; attempt++)
+        {
+            int pixelIndex = Random.Range(0, totalPixels);
+            if (maskPixels[pixelIndex].a < minAlpha)
+            {
+                continue;
+            }
+
+            worldPosition = PixelIndexToWorldPosition(pixelIndex);
+            return true;
+        }
+
+        int startIndex = Random.Range(0, totalPixels);
+        for (int offset = 0; offset < totalPixels; offset++)
+        {
+            int pixelIndex = (startIndex + offset) % totalPixels;
+            if (maskPixels[pixelIndex].a < minAlpha)
+            {
+                continue;
+            }
+
+            worldPosition = PixelIndexToWorldPosition(pixelIndex);
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool IsRevealedAtWorldPosition(Vector2 worldPosition, float minAlpha01 = 0.05f)
+    {
+        if (!TryEnsureRevealMask() || maskPixels == null)
+        {
+            return false;
+        }
+
+        if (!TryGetPixelIndexFromWorldPosition(worldPosition, out int pixelIndex))
+        {
+            return false;
+        }
+
+        byte minAlpha = (byte)Mathf.RoundToInt(Mathf.Clamp01(Mathf.Max(minAlpha01, alphaCutoff)) * 255f);
+        return maskPixels[pixelIndex].a >= minAlpha;
+    }
+
     private void ApplyConfiguration(
         Transform preferredMapRoot,
         string preferredMapRootName,
@@ -444,6 +500,44 @@ public sealed class WorldRevealMaskController : MonoBehaviour
                 transform.SetParent(mapRoot, false);
             }
         }
+    }
+
+    private bool TryGetPixelIndexFromWorldPosition(Vector2 worldPosition, out int pixelIndex)
+    {
+        pixelIndex = -1;
+        if (maskTextureWidth <= 0 || maskTextureHeight <= 0)
+        {
+            return false;
+        }
+
+        float normalizedX = (worldPosition.x - revealMin.x) / revealSize.x;
+        float normalizedY = (worldPosition.y - revealMin.y) / revealSize.y;
+        if (normalizedX < 0f || normalizedX > 1f || normalizedY < 0f || normalizedY > 1f)
+        {
+            return false;
+        }
+
+        int pixelX = Mathf.Clamp(Mathf.FloorToInt(normalizedX * maskTextureWidth), 0, maskTextureWidth - 1);
+        int pixelY = Mathf.Clamp(Mathf.FloorToInt(normalizedY * maskTextureHeight), 0, maskTextureHeight - 1);
+        pixelIndex = pixelY * maskTextureWidth + pixelX;
+        return true;
+    }
+
+    private Vector3 PixelIndexToWorldPosition(int pixelIndex)
+    {
+        int pixelX = pixelIndex % maskTextureWidth;
+        int pixelY = pixelIndex / maskTextureWidth;
+        return PixelToWorldPosition(pixelX, pixelY);
+    }
+
+    private Vector3 PixelToWorldPosition(int pixelX, int pixelY)
+    {
+        float pixelWidth = revealSize.x / maskTextureWidth;
+        float pixelHeight = revealSize.y / maskTextureHeight;
+        return new Vector3(
+            revealMin.x + (pixelX + 0.5f) * pixelWidth,
+            revealMin.y + (pixelY + 0.5f) * pixelHeight,
+            0f);
     }
 
     private bool BoundsChanged(Bounds currentBounds)
