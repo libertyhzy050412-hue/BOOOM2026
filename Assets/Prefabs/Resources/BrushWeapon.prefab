@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3967597092999760191
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5482442909137978993}
+  - component: {fileID: 2172524566002302751}
+  m_Layer: 0
+  m_Name: BrushWeapon
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5482442909137978993
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3967597092999760191}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 4.50759, y: -0.27579, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2172524566002302751
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3967597092999760191}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c412939168615e14197a05fb471029c6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BrushWeapon
+  owner: {fileID: 0}
+  inputCamera: {fileID: 0}
+  weaponEnabled: 1
+  mapRoot: {fileID: 0}
+  mapRootName: MapRoot
+  revealMaskName: WorldRevealMask
+  brushStrength: 1
+  brushMinRadius: 0.6
+  brushMaxRadius: 1.5
+  brushStationaryMaxRadius: 2.15
+  brushHardness: 0.56
+  brushSpacingRatio: 0.28
+  brushSpreadPerSecond: 1.05
+  brushThinSpeedStart: 2
+  brushThinSpeedEnd: 15
+  fastMoveRadiusFactor: 0.36
+  cursorSpeedSmoothing: 14
+  stationaryPaintInterval: 0.055
+  maxDistanceFromOwner: 0
+  showRangeWhilePainting: 1
+  showRangeWhileIdle: 1
+  rangeRingColor: {r: 1, g: 0.86, b: 0.12, a: 0.95}
+  rangeRingThickness: 0.12
+  generatedSpriteResolution: 128
+  maskPixelsPerUnit: 16
+  maxMaskTextureSize: 2048
