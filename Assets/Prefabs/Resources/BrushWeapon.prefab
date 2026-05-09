@@ -70,3 +70,14 @@ MonoBehaviour:
   generatedSpriteResolution: 128
   maskPixelsPerUnit: 16
   maxMaskTextureSize: 2048
+  enableSummonSpawning: 1
+  summonOnePrefab: {fileID: 804503144097626695, guid: 76d1daf117459ce4b801aa7687a59d54, type: 3}
+  summonRoot: {fileID: 0}
+  summonRootName: SummonRoot
+  summonSpawnInterval: 2.5
+  maxActiveSummons: 4
+  summonMinDistanceFromOwner: 1.5
+  summonMaxDistanceFromOwner: 12
+  summonMinSpacing: 0.75
+  summonRevealAlphaThreshold: 0.12
+  summonSpawnSampleAttempts: 24

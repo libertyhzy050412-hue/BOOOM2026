@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -26,11 +27,23 @@ public sealed class BrushWeapon : WeaponBase
     [SerializeField, Min(32)] private int generatedSpriteResolution = 128;
     [SerializeField, Range(1f, 64f)] private float maskPixelsPerUnit = 16f;
     [SerializeField, Min(256)] private int maxMaskTextureSize = 2048;
+    [SerializeField] private bool enableSummonSpawning = true;
+    [SerializeField] private SummonBase summonOnePrefab;
+    [SerializeField] private Transform summonRoot;
+    [SerializeField] private string summonRootName = "SummonRoot";
+    [SerializeField, Min(0.01f)] private float summonSpawnInterval = 2.5f;
+    [SerializeField, Min(0)] private int maxActiveSummons = 4;
+    [SerializeField, Min(0f)] private float summonMinDistanceFromOwner = 1.5f;
+    [SerializeField, Min(0f)] private float summonMaxDistanceFromOwner = 12f;
+    [SerializeField, Min(0f)] private float summonMinSpacing = 0.75f;
+    [SerializeField, Range(0.01f, 1f)] private float summonRevealAlphaThreshold = 0.12f;
+    [SerializeField, Min(1)] private int summonSpawnSampleAttempts = 24;
 
     private SpriteRenderer rangeIndicator;
     private Sprite generatedRingSprite;
     private Texture2D generatedRingTexture;
     private WorldRevealMaskController revealMaskController;
+    private readonly List<SummonBase> activeSummons = new List<SummonBase>();
     private bool strokeActive;
     private bool hasLoggedMissingCamera;
     private Vector3 lastCursorPosition;
@@ -40,6 +53,7 @@ public sealed class BrushWeapon : WeaponBase
     private float stationaryTime;
     private float stationaryPaintTimer;
     private float currentVisualRadius;
+    private float summonSpawnTimer;
 
     protected override void Awake()
     {
@@ -47,12 +61,14 @@ public sealed class BrushWeapon : WeaponBase
         EnsureRangeIndicator();
         EnsureGeneratedRing();
         EnsureRevealMaskController();
+        EnsureSummonRoot();
         UpdateBrushVisualScale(EvaluateEffectiveMaxRadius());
         UpdateRangeIndicatorVisibility(false, false);
     }
 
     protected override void Tick(float deltaTime)
     {
+        UpdateSummonSpawning(deltaTime);
         EnsureRangeIndicator();
         EnsureGeneratedRing();
 
@@ -131,6 +147,7 @@ public sealed class BrushWeapon : WeaponBase
     protected override void OnWeaponDisabled()
     {
         ResetStrokeState();
+        summonSpawnTimer = 0f;
         UpdateRangeIndicatorVisibility(false, false);
         FlushRevealMask();
     }
@@ -159,6 +176,13 @@ public sealed class BrushWeapon : WeaponBase
         generatedSpriteResolution = Mathf.Clamp(generatedSpriteResolution, 32, 512);
         maskPixelsPerUnit = Mathf.Clamp(maskPixelsPerUnit, 1f, 64f);
         maxMaskTextureSize = Mathf.Clamp(maxMaskTextureSize, 256, 4096);
+        summonSpawnInterval = Mathf.Max(0.01f, summonSpawnInterval);
+        maxActiveSummons = Mathf.Max(0, maxActiveSummons);
+        summonMinDistanceFromOwner = Mathf.Max(0f, summonMinDistanceFromOwner);
+        summonMaxDistanceFromOwner = Mathf.Max(summonMinDistanceFromOwner, summonMaxDistanceFromOwner);
+        summonMinSpacing = Mathf.Max(0f, summonMinSpacing);
+        summonRevealAlphaThreshold = Mathf.Clamp01(summonRevealAlphaThreshold);
+        summonSpawnSampleAttempts = Mathf.Max(1, summonSpawnSampleAttempts);
 
         if (Application.isPlaying)
         {
@@ -265,6 +289,113 @@ public sealed class BrushWeapon : WeaponBase
         }
     }
 
+    private void UpdateSummonSpawning(float deltaTime)
+    {
+        if (!enableSummonSpawning || summonOnePrefab == null)
+        {
+            return;
+        }
+
+        CleanupActiveSummons();
+        if (maxActiveSummons > 0 && activeSummons.Count >= maxActiveSummons)
+        {
+            summonSpawnTimer = 0f;
+            return;
+        }
+
+        summonSpawnTimer += deltaTime;
+        if (summonSpawnTimer < summonSpawnInterval)
+        {
+            return;
+        }
+
+        if (!TryGetSummonSpawnPosition(out Vector3 spawnPosition))
+        {
+            summonSpawnTimer = summonSpawnInterval;
+            return;
+        }
+
+        SpawnSummon(spawnPosition);
+        summonSpawnTimer = 0f;
+    }
+
+    private bool TryGetSummonSpawnPosition(out Vector3 spawnPosition)
+    {
+        spawnPosition = default;
+        if (!EnsureRevealMaskController())
+        {
+            return false;
+        }
+
+        Vector2 ownerPosition = GetOwnerPositionOrSelf();
+        float minDistanceSqr = summonMinDistanceFromOwner * summonMinDistanceFromOwner;
+        float maxDistanceSqr = summonMaxDistanceFromOwner <= 0f ? float.PositiveInfinity : summonMaxDistanceFromOwner * summonMaxDistanceFromOwner;
+        int totalAttempts = Mathf.Max(1, summonSpawnSampleAttempts);
+
+        for (int attempt = 0; attempt < totalAttempts; attempt++)
+        {
+            if (!revealMaskController.TryGetRandomRevealedPosition(out Vector3 candidate, summonRevealAlphaThreshold, totalAttempts))
+            {
+                return false;
+            }
+
+            float distanceSqr = ((Vector2)candidate - ownerPosition).sqrMagnitude;
+            if (distanceSqr < minDistanceSqr || distanceSqr > maxDistanceSqr)
+            {
+                continue;
+            }
+
+            if (summonMinSpacing > 0f && !HasEnoughSpacing(candidate))
+            {
+                continue;
+            }
+
+            spawnPosition = candidate;
+            spawnPosition.z = 0f;
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool HasEnoughSpacing(Vector3 candidate)
+    {
+        float minSpacingSqr = summonMinSpacing * summonMinSpacing;
+        for (int index = 0; index < activeSummons.Count; index++)
+        {
+            SummonBase summon = activeSummons[index];
+            if (summon == null)
+            {
+                continue;
+            }
+
+            if (((Vector2)(summon.transform.position - candidate)).sqrMagnitude < minSpacingSqr)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void SpawnSummon(Vector3 spawnPosition)
+    {
+        SummonBase summonInstance = Instantiate(summonOnePrefab, spawnPosition, Quaternion.identity, EnsureSummonRoot());
+        summonInstance.SetOwner(Owner);
+        activeSummons.Add(summonInstance);
+    }
+
+    private void CleanupActiveSummons()
+    {
+        for (int index = activeSummons.Count - 1; index >= 0; index--)
+        {
+            if (activeSummons[index] == null)
+            {
+                activeSummons.RemoveAt(index);
+            }
+        }
+    }
+
     private bool EnsureRevealMaskController()
     {
         ResolveMapRoot();
@@ -275,6 +406,24 @@ public sealed class BrushWeapon : WeaponBase
             maskPixelsPerUnit,
             maxMaskTextureSize);
         return revealMaskController != null;
+    }
+
+    private Transform EnsureSummonRoot()
+    {
+        if (summonRoot != null)
+        {
+            return summonRoot;
+        }
+
+        string rootName = string.IsNullOrWhiteSpace(summonRootName) ? "SummonRoot" : summonRootName;
+        GameObject rootObject = GameObject.Find(rootName);
+        if (rootObject == null)
+        {
+            rootObject = new GameObject(rootName);
+        }
+
+        summonRoot = rootObject.transform;
+        return summonRoot;
     }
 
     private void EnsureRangeIndicator()
