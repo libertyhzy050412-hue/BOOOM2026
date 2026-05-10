@@ -7,18 +7,23 @@ using UnityEngine;
 [RequireComponent(typeof(Player))]
 public sealed class PlayerMovement : MonoBehaviour
 {
+    private static readonly int IsMoveHash = Animator.StringToHash("IsMove");
+
     [SerializeField] private Rigidbody2D controlledBody;
+    [SerializeField] private Animator movementAnimator;
     [SerializeField, Min(0.001f)] private float collisionSkin = 0.02f;
 
     private Player player;
     private Vector2 moveInput;
     private readonly RaycastHit2D[] castResults = new RaycastHit2D[8];
     private ContactFilter2D movementFilter;
+    private bool movementAnimatorHasIsMove;
     
     
     private void Reset()
     {
         controlledBody = GetComponent<Rigidbody2D>();
+        ResolveMovementAnimator();
     }
 
     private void Awake()
@@ -40,13 +45,22 @@ public sealed class PlayerMovement : MonoBehaviour
         movementFilter = new ContactFilter2D();
         movementFilter.useLayerMask = false;
         movementFilter.useTriggers = false;
+
+        ResolveMovementAnimator();
+        ApplyMoveAnimation(false);
         
     }
 
     private void Update()
     {
         moveInput = ReadMoveInput();
-        MoveTransform(Time.deltaTime);
+        bool isMoving = MoveTransform(Time.deltaTime);
+        ApplyMoveAnimation(isMoving);
+    }
+
+    private void OnDisable()
+    {
+        ApplyMoveAnimation(false);
     }
 
     private Vector2 ReadMoveInput()
@@ -90,12 +104,14 @@ public sealed class PlayerMovement : MonoBehaviour
         return Vector2.ClampMagnitude(input, 1f);
     }
 
-    private void MoveTransform(float deltaTime)
+    private bool MoveTransform(float deltaTime)
     {
         if (player == null)
         {
-            return;
+            return false;
         }
+
+        Vector3 startPosition = transform.position;
 
         if (controlledBody != null)
         {
@@ -105,6 +121,8 @@ public sealed class PlayerMovement : MonoBehaviour
         Vector2 movement = moveInput * player.MoveSpeed * deltaTime;
         MoveAlongAxis(new Vector2(movement.x, 0f));
         MoveAlongAxis(new Vector2(0f, movement.y));
+
+        return ((Vector2)(transform.position - startPosition)).sqrMagnitude > 0.000001f;
     }
 
     private void MoveAlongAxis(Vector2 axisMovement)
@@ -149,5 +167,53 @@ public sealed class PlayerMovement : MonoBehaviour
         {
             controlledBody.position = nextPosition;
         }
+    }
+
+    private void ResolveMovementAnimator()
+    {
+        if (movementAnimator == null)
+        {
+            Animator[] animators = GetComponentsInChildren<Animator>(true);
+            for (int index = 0; index < animators.Length; index++)
+            {
+                if (AnimatorHasBoolParameter(animators[index], IsMoveHash))
+                {
+                    movementAnimator = animators[index];
+                    break;
+                }
+            }
+        }
+
+        movementAnimatorHasIsMove = AnimatorHasBoolParameter(movementAnimator, IsMoveHash);
+    }
+
+    private void ApplyMoveAnimation(bool isMoving)
+    {
+        if (!movementAnimatorHasIsMove)
+        {
+            return;
+        }
+
+        movementAnimator.SetBool(IsMoveHash, isMoving);
+    }
+
+    private static bool AnimatorHasBoolParameter(Animator animator, int parameterHash)
+    {
+        if (animator == null)
+        {
+            return false;
+        }
+
+        AnimatorControllerParameter[] parameters = animator.parameters;
+        for (int index = 0; index < parameters.Length; index++)
+        {
+            AnimatorControllerParameter parameter = parameters[index];
+            if (parameter.type == AnimatorControllerParameterType.Bool && parameter.nameHash == parameterHash)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
