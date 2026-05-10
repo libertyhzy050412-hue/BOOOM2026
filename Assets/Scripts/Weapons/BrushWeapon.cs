@@ -4,6 +4,8 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class BrushWeapon : WeaponBase
 {
+    private const float MinimumInkEpsilon = 0.0001f;
+
     [SerializeField] private Transform mapRoot;
     [SerializeField] private string mapRootName = "MapRoot";
     [SerializeField] private string revealMaskName = "WorldRevealMask";
@@ -27,6 +29,11 @@ public sealed class BrushWeapon : WeaponBase
     [SerializeField, Min(32)] private int generatedSpriteResolution = 128;
     [SerializeField, Range(1f, 64f)] private float maskPixelsPerUnit = 16f;
     [SerializeField, Min(256)] private int maxMaskTextureSize = 2048;
+    [SerializeField, Min(0.01f)] private float maxInkAmount = 12f;
+    [SerializeField, Min(0f)] private float inkCostPerWorldUnit = 1f;
+    [SerializeField, Min(0f)] private float inkRecoveryDelay = 0.8f;
+    [SerializeField, Min(0f)] private float inkRecoveryPerSecond = 4f;
+    [SerializeField, Range(0f, 1f)] private float depletedInkResumeNormalized = 0.12f;
     [SerializeField] private bool enableSummonSpawning = true;
     [SerializeField] private SummonBase summonOnePrefab;
     [SerializeField] private Transform summonRoot;
@@ -54,10 +61,21 @@ public sealed class BrushWeapon : WeaponBase
     private float stationaryPaintTimer;
     private float currentVisualRadius;
     private float summonSpawnTimer;
+    private float currentInkAmount;
+    private float inkRecoveryDelayTimer;
+    private bool inkRecoveryActive;
+
+    public float CurrentInkAmount => currentInkAmount;
+    public float MaxInkAmount => maxInkAmount;
+    public float NormalizedInkAmount => maxInkAmount <= MinimumInkEpsilon ? 0f : Mathf.Clamp01(currentInkAmount / maxInkAmount);
+    public bool InkRecoveryActive => inkRecoveryActive;
 
     protected override void Awake()
     {
         base.Awake();
+        currentInkAmount = maxInkAmount;
+        inkRecoveryDelayTimer = inkRecoveryDelay;
+        inkRecoveryActive = false;
         EnsureRangeIndicator();
         EnsureGeneratedRing();
         EnsureRevealMaskController();
@@ -72,6 +90,9 @@ public sealed class BrushWeapon : WeaponBase
         EnsureRangeIndicator();
         EnsureGeneratedRing();
 
+        bool useHeld = IsPrimaryUseHeld();
+        UpdateInkRecovery(deltaTime, useHeld);
+
         if (!TryGetPointerWorldPosition(out Vector3 pointerPosition))
         {
             UpdateRangeIndicatorVisibility(false, false);
@@ -83,7 +104,6 @@ public sealed class BrushWeapon : WeaponBase
         pointerPosition = ClampPointerDistance(pointerPosition);
         transform.position = pointerPosition;
 
-        bool useHeld = IsPrimaryUseHeld();
         float visualRadius = EvaluateEffectiveMaxRadius();
 
         if (!useHeld)
@@ -91,6 +111,15 @@ public sealed class BrushWeapon : WeaponBase
             UpdateBrushVisualScale(visualRadius);
             UpdateRangeIndicatorVisibility(false, true);
             ResetStrokeState();
+            FlushRevealMask();
+            return;
+        }
+
+        if (!CanPaintWithInk())
+        {
+            BreakStrokeContinuity(pointerPosition, visualRadius);
+            UpdateBrushVisualScale(visualRadius);
+            UpdateRangeIndicatorVisibility(true, true);
             FlushRevealMask();
             return;
         }
@@ -131,7 +160,19 @@ public sealed class BrushWeapon : WeaponBase
         {
             stationaryTime = 0f;
             stationaryPaintTimer = 0f;
-            RevealStroke(lastPaintPosition, pointerPosition, lastPaintRadius, targetRadius);
+            float requestedPaintDistance = Vector2.Distance(lastPaintPosition, pointerPosition);
+            float allowedPaintDistance = GetAllowedPaintDistance(requestedPaintDistance);
+
+            if (allowedPaintDistance > MinimumInkEpsilon)
+            {
+                float paintRatio = requestedPaintDistance <= MinimumInkEpsilon ? 1f : Mathf.Clamp01(allowedPaintDistance / requestedPaintDistance);
+                Vector2 paintedEndPosition = Vector2.Lerp(lastPaintPosition, pointerPosition, paintRatio);
+                float paintedEndRadius = Mathf.Lerp(lastPaintRadius, targetRadius, paintRatio);
+                MarkInkUseActive();
+                RevealStroke(lastPaintPosition, paintedEndPosition, lastPaintRadius, paintedEndRadius);
+                ConsumeInkForDistance(allowedPaintDistance);
+            }
+
             lastPaintPosition = pointerPosition;
             lastPaintRadius = targetRadius;
             visualRadius = targetRadius;
@@ -176,6 +217,11 @@ public sealed class BrushWeapon : WeaponBase
         generatedSpriteResolution = Mathf.Clamp(generatedSpriteResolution, 32, 512);
         maskPixelsPerUnit = Mathf.Clamp(maskPixelsPerUnit, 1f, 64f);
         maxMaskTextureSize = Mathf.Clamp(maxMaskTextureSize, 256, 4096);
+        maxInkAmount = Mathf.Max(0.01f, maxInkAmount);
+        inkCostPerWorldUnit = Mathf.Max(0f, inkCostPerWorldUnit);
+        inkRecoveryDelay = Mathf.Max(0f, inkRecoveryDelay);
+        inkRecoveryPerSecond = Mathf.Max(0f, inkRecoveryPerSecond);
+        depletedInkResumeNormalized = Mathf.Clamp01(depletedInkResumeNormalized);
         summonSpawnInterval = Mathf.Max(0.01f, summonSpawnInterval);
         maxActiveSummons = Mathf.Max(0, maxActiveSummons);
         summonMinDistanceFromOwner = Mathf.Max(0f, summonMinDistanceFromOwner);
@@ -186,6 +232,8 @@ public sealed class BrushWeapon : WeaponBase
 
         if (Application.isPlaying)
         {
+            currentInkAmount = Mathf.Clamp(currentInkAmount, 0f, maxInkAmount);
+            inkRecoveryDelayTimer = Mathf.Max(0f, inkRecoveryDelayTimer);
             RebuildGeneratedRing();
             EnsureRevealMaskController();
             UpdateBrushVisualScale(currentVisualRadius > 0f ? currentVisualRadius : EvaluateEffectiveMaxRadius());
@@ -220,6 +268,7 @@ public sealed class BrushWeapon : WeaponBase
         stationaryTime = 0f;
         stationaryPaintTimer = 0f;
         currentVisualRadius = lastPaintRadius;
+        MarkInkUseActive();
         RevealStamp(pointerPosition, lastPaintRadius);
     }
 
@@ -259,6 +308,111 @@ public sealed class BrushWeapon : WeaponBase
         float thinAmount = Mathf.InverseLerp(brushThinSpeedStart, brushThinSpeedEnd, cursorSpeed);
         float thinnedRadius = Mathf.Lerp(maxRadius, Mathf.Max(minRadius, maxRadius * fastMoveRadiusFactor), thinAmount);
         return Mathf.Clamp(thinnedRadius, minRadius, maxRadius);
+    }
+
+    private bool CanPaintWithInk()
+    {
+        if (currentInkAmount <= MinimumInkEpsilon)
+        {
+            return false;
+        }
+
+        if (!inkRecoveryActive)
+        {
+            return true;
+        }
+
+        return currentInkAmount >= GetInkResumeAmount();
+    }
+
+    private float GetAllowedPaintDistance(float requestedDistance)
+    {
+        if (requestedDistance <= MinimumInkEpsilon)
+        {
+            return 0f;
+        }
+
+        if (inkCostPerWorldUnit <= MinimumInkEpsilon)
+        {
+            return requestedDistance;
+        }
+
+        return Mathf.Min(requestedDistance, currentInkAmount / inkCostPerWorldUnit);
+    }
+
+    private void ConsumeInkForDistance(float paintedDistance)
+    {
+        if (paintedDistance <= MinimumInkEpsilon || inkCostPerWorldUnit <= MinimumInkEpsilon)
+        {
+            return;
+        }
+
+        currentInkAmount = Mathf.Max(0f, currentInkAmount - paintedDistance * inkCostPerWorldUnit);
+        inkRecoveryDelayTimer = inkRecoveryDelay;
+        if (currentInkAmount <= MinimumInkEpsilon)
+        {
+            currentInkAmount = 0f;
+            inkRecoveryActive = true;
+        }
+    }
+
+    private void UpdateInkRecovery(float deltaTime, bool useHeld)
+    {
+        if (!useHeld && currentInkAmount < maxInkAmount - MinimumInkEpsilon)
+        {
+            inkRecoveryActive = true;
+        }
+
+        if (!inkRecoveryActive)
+        {
+            inkRecoveryDelayTimer = inkRecoveryDelay;
+            return;
+        }
+
+        if (currentInkAmount >= maxInkAmount - MinimumInkEpsilon)
+        {
+            currentInkAmount = maxInkAmount;
+            inkRecoveryActive = false;
+            inkRecoveryDelayTimer = inkRecoveryDelay;
+            return;
+        }
+
+        if (inkRecoveryDelayTimer > 0f)
+        {
+            inkRecoveryDelayTimer = Mathf.Max(0f, inkRecoveryDelayTimer - deltaTime);
+            return;
+        }
+
+        currentInkAmount = Mathf.Min(maxInkAmount, currentInkAmount + inkRecoveryPerSecond * deltaTime);
+        if (currentInkAmount >= maxInkAmount - MinimumInkEpsilon)
+        {
+            currentInkAmount = maxInkAmount;
+            inkRecoveryActive = false;
+            inkRecoveryDelayTimer = inkRecoveryDelay;
+        }
+    }
+
+    private float GetInkResumeAmount()
+    {
+        return Mathf.Clamp01(depletedInkResumeNormalized) * maxInkAmount;
+    }
+
+    private void MarkInkUseActive()
+    {
+        inkRecoveryActive = false;
+        inkRecoveryDelayTimer = inkRecoveryDelay;
+    }
+
+    private void BreakStrokeContinuity(Vector3 pointerPosition, float visualRadius)
+    {
+        strokeActive = false;
+        smoothedCursorSpeed = 0f;
+        stationaryTime = 0f;
+        stationaryPaintTimer = 0f;
+        lastCursorPosition = pointerPosition;
+        lastPaintPosition = pointerPosition;
+        lastPaintRadius = visualRadius;
+        currentVisualRadius = visualRadius;
     }
 
     private void RevealStroke(Vector2 from, Vector2 to, float fromRadius, float toRadius)
