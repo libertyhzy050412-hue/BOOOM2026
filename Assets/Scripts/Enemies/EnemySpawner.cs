@@ -35,6 +35,8 @@ public sealed class EnemySpawner : MonoBehaviour
     [SerializeField] private bool autoSpawn = true;
     [SerializeField] private List<EnemySpawnRule> spawnRules = new List<EnemySpawnRule>();
 
+    public bool AutoSpawn => autoSpawn;
+
     private void Awake()
     {
         ResolveTargetPlayer();
@@ -59,6 +61,11 @@ public sealed class EnemySpawner : MonoBehaviour
         {
             UpdateRule(spawnRules[index], deltaTime);
         }
+    }
+
+    public void SetAutoSpawn(bool enabled)
+    {
+        autoSpawn = enabled;
     }
 
     [ContextMenu("Reset Spawn State")]
