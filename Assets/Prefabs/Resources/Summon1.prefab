@@ -49,6 +49,7 @@ MonoBehaviour:
   summonEnabled: 1
   useRigidbodyMovement: 1
   moveSpeed: 4
+  lifetimeSeconds: 10
   followSpeed: 3.6
   chaseSpeed: 4.8
   followStopDistance: 1
@@ -61,6 +62,7 @@ MonoBehaviour:
   chargeEndSpeed: 13
   chargeDuration: 0.35
   lockedTargetContactDistance: 0.28
+  chargeDamage: 10
 --- !u!1 &6486835514628603163
 GameObject:
   m_ObjectHideFlags: 0
@@ -142,7 +144,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 2
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -4032760656377300063, guid: 67002fe829c11c84fb87826f1556f273, type: 3}
+  m_Sprite: {fileID: -4032760656377300063, guid: 7400628165103ca499ed31d0937e8299, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0

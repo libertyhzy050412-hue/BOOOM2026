@@ -380,14 +380,14 @@ MonoBehaviour:
   - id: Normal
     enemyPrefab: {fileID: 4052499550530570576, guid: 56768384755a4c54098f23680e978f5d, type: 3}
     enabled: 1
-    startDelay: 0
+    startDelay: 2
     initialBurstCount: 0
-    spawnInterval: 0.01
-    spawnCountPerCycle: 1
+    spawnInterval: 3
+    spawnCountPerCycle: 2
     maxAliveCount: 10
     maxTotalSpawnCount: 10000
-    minSpawnDistanceFromPlayer: 2
-    maxSpawnDistanceFromPlayer: 3
+    minSpawnDistanceFromPlayer: 5
+    maxSpawnDistanceFromPlayer: 5
     mapEdgePadding: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

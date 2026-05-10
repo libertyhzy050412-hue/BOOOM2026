@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public abstract class EnemyBase : MonoBehaviour
+public abstract class EnemyBase : MonoBehaviour, IDamageable
 {
     [SerializeField] private Player targetPlayer;
     [SerializeField] private bool enemyEnabled = true;
@@ -17,6 +17,7 @@ public abstract class EnemyBase : MonoBehaviour
     [SerializeField, Min(0.01f)] private float stationaryRestoreInterval = 0.12f;
 
     private Rigidbody2D cachedRigidbody;
+    private UnitDamageFlash damageFlash;
     private WorldRevealMaskController revealMaskController;
     private Vector2 pendingMoveDirection;
     private Vector2 lastRestorePosition;
@@ -28,6 +29,8 @@ public abstract class EnemyBase : MonoBehaviour
     public float MoveSpeed => moveSpeed;
     public float MaxHealth => maxHealth;
     public float CurrentHealth => currentHealth;
+    public DamageTeam Team => DamageTeam.Enemy;
+    public bool IsAlive => currentHealth > 0f;
 
     protected virtual void Reset()
     {
@@ -38,6 +41,11 @@ public abstract class EnemyBase : MonoBehaviour
     protected virtual void Awake()
     {
         cachedRigidbody = GetComponent<Rigidbody2D>();
+        damageFlash = GetComponent<UnitDamageFlash>();
+        if (damageFlash == null)
+        {
+            damageFlash = gameObject.AddComponent<UnitDamageFlash>();
+        }
         ResolveTargetPlayer();
         currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
     }
@@ -118,17 +126,30 @@ public abstract class EnemyBase : MonoBehaviour
 
     public void TakeDamage(float damage)
     {
-        if (damage <= 0f)
+        ApplyDamage(damage, DamageTeam.Neutral, this);
+    }
+
+    public bool ApplyDamage(float amount, DamageTeam sourceTeam, Object source = null)
+    {
+        if (amount <= 0f || !IsAlive)
         {
-            return;
+            return false;
         }
 
-        currentHealth = Mathf.Max(0f, currentHealth - damage);
+        if (sourceTeam == Team)
+        {
+            return false;
+        }
+
+        currentHealth = Mathf.Max(0f, currentHealth - amount);
+        damageFlash?.PlayFlash();
         if (currentHealth <= 0f)
         {
             OnKilled();
             Destroy(gameObject);
         }
+
+        return true;
     }
 
     protected bool TryGetTargetPosition(out Vector3 position)

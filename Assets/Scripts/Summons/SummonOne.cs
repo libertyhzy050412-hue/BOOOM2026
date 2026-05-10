@@ -23,6 +23,7 @@ public sealed class SummonOne : SummonBase
     [SerializeField, Min(0f)] private float chargeEndSpeed = 13f;
     [SerializeField, Min(0.01f)] private float chargeDuration = 0.35f;
     [SerializeField, Min(0f)] private float lockedTargetContactDistance = 0.28f;
+    [SerializeField, Min(0f)] private float chargeDamage = 10f;
 
     private EnemyBase lockedTarget;
     private CombatState combatState;
@@ -220,6 +221,11 @@ public sealed class SummonOne : SummonBase
 
     private void HandleLockedTargetContact()
     {
+        if (lockedTarget != null)
+        {
+            lockedTarget.ApplyDamage(chargeDamage, DamageTeam.Player, this);
+        }
+
         FinishCharge();
     }
 
@@ -270,5 +276,6 @@ public sealed class SummonOne : SummonBase
         chargeEndSpeed = Mathf.Max(chargeStartSpeed, chargeEndSpeed);
         chargeDuration = Mathf.Max(0.01f, chargeDuration);
         lockedTargetContactDistance = Mathf.Max(0f, lockedTargetContactDistance);
+        chargeDamage = Mathf.Max(0f, chargeDamage);
     }
 }

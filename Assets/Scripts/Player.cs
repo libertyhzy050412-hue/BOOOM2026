@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public sealed class Player : MonoBehaviour
+public sealed class Player : MonoBehaviour, IDamageable
 {
     [SerializeField, Min(0f)] private float moveSpeed = 5f;
     [SerializeField, Min(0f)] private float maxHealth = 100f;
@@ -11,6 +11,8 @@ public sealed class Player : MonoBehaviour
     [SerializeField, Min(0f)] private float magicalAttack = 10f;
     [SerializeField, Range(0f, 100f)] private float dodgePercent = 5f;
 
+    private UnitDamageFlash damageFlash;
+
     public float MoveSpeed => moveSpeed;
     public float MaxHealth => maxHealth;
     public float CurrentHealth => currentHealth;
@@ -18,10 +20,17 @@ public sealed class Player : MonoBehaviour
     public float PhysicalAttack => physicalAttack;
     public float MagicalAttack => magicalAttack;
     public float DodgePercent => dodgePercent;
+    public DamageTeam Team => DamageTeam.Player;
+    public bool IsAlive => currentHealth > 0f;
 
     private void Awake()
     {
         currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
+        damageFlash = GetComponent<UnitDamageFlash>();
+        if (damageFlash == null)
+        {
+            damageFlash = gameObject.AddComponent<UnitDamageFlash>();
+        }
     }
 
     public void SetMoveSpeed(float value)
@@ -52,12 +61,24 @@ public sealed class Player : MonoBehaviour
 
     public void TakeDamage(float value)
     {
-        if (value <= 0f)
+        ApplyDamage(value, DamageTeam.Neutral, this);
+    }
+
+    public bool ApplyDamage(float amount, DamageTeam sourceTeam, Object source = null)
+    {
+        if (amount <= 0f || !IsAlive)
         {
-            return;
+            return false;
         }
 
-        currentHealth = Mathf.Max(currentHealth - value, 0f);
+        if (sourceTeam == Team)
+        {
+            return false;
+        }
+
+        currentHealth = Mathf.Max(currentHealth - amount, 0f);
+        damageFlash?.PlayFlash();
+        return true;
     }
 
     private void OnValidate()
