@@ -193,7 +193,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         }
 
         float movedDistance = Vector2.Distance(startPosition, endPosition);
-        float stationaryThreshold = Mathf.Max(restoreRadius * restoreSpacingRatio, 0.02f);
+        bool isEffectivelyStationary = movedDistance <= 0.001f;
 
         if (!hasRestorePosition)
         {
@@ -205,7 +205,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
             return;
         }
 
-        if (movedDistance <= stationaryThreshold)
+        if (isEffectivelyStationary)
         {
             stationaryRestoreTimer += Mathf.Max(deltaTime, 0.0001f);
             if (stationaryRestoreTimer >= stationaryRestoreInterval)
@@ -229,7 +229,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
     {
         if (revealMaskController == null)
         {
-            revealMaskController = WorldRevealMaskController.GetOrCreate();
+            revealMaskController = WorldRevealMaskController.Instance ?? WorldRevealMaskController.GetOrCreate();
         }
 
         return revealMaskController;

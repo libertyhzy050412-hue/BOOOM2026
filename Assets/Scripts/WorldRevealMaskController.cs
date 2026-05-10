@@ -3,12 +3,18 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class WorldRevealMaskController : MonoBehaviour
 {
+    private const string DefaultMapRootName = "MapRoot";
+    private const string DefaultRevealMaskName = "WorldRevealMask";
+    private const float DefaultMaskPixelsPerUnit = 16f;
+    private const int DefaultMaxMaskTextureSize = 2048;
+
     [SerializeField] private Transform mapRoot;
-    [SerializeField] private string mapRootName = "MapRoot";
-    [SerializeField] private string revealMaskName = "WorldRevealMask";
-    [SerializeField, Range(1f, 64f)] private float maskPixelsPerUnit = 16f;
-    [SerializeField, Min(256)] private int maxMaskTextureSize = 2048;
+    [SerializeField] private string mapRootName = DefaultMapRootName;
+    [SerializeField] private string revealMaskName = DefaultRevealMaskName;
+    [SerializeField, Range(1f, 64f)] private float maskPixelsPerUnit = DefaultMaskPixelsPerUnit;
+    [SerializeField, Min(256)] private int maxMaskTextureSize = DefaultMaxMaskTextureSize;
     [SerializeField, Range(0f, 1f)] private float alphaCutoff = 0.01f;
+    [SerializeField] private bool ignoreRuntimeBoundsChangesAfterBuild = true;
 
     private static WorldRevealMaskController instance;
 
@@ -25,6 +31,7 @@ public sealed class WorldRevealMaskController : MonoBehaviour
     private bool maskDirty;
     private bool hasDirtyRect;
     private bool hasLoggedMissingMapBounds;
+    private bool configurationDirty;
     private int dirtyMinX;
     private int dirtyMinY;
     private int dirtyMaxX;
@@ -34,10 +41,10 @@ public sealed class WorldRevealMaskController : MonoBehaviour
 
     public static WorldRevealMaskController GetOrCreate(
         Transform preferredMapRoot = null,
-        string preferredMapRootName = "MapRoot",
-        string preferredRevealMaskName = "WorldRevealMask",
-        float preferredMaskPixelsPerUnit = 16f,
-        int preferredMaxMaskTextureSize = 2048)
+        string preferredMapRootName = DefaultMapRootName,
+        string preferredRevealMaskName = DefaultRevealMaskName,
+        float preferredMaskPixelsPerUnit = DefaultMaskPixelsPerUnit,
+        int preferredMaxMaskTextureSize = DefaultMaxMaskTextureSize)
     {
         if (instance == null)
         {
@@ -142,12 +149,12 @@ public sealed class WorldRevealMaskController : MonoBehaviour
             return false;
         }
 
-        Renderer[] renderers = mapRoot.GetComponentsInChildren<Renderer>(true);
+        SpriteRenderer[] renderers = mapRoot.GetComponentsInChildren<SpriteRenderer>(true);
         bool hasBounds = false;
 
         for (int index = 0; index < renderers.Length; index++)
         {
-            Renderer rendererReference = renderers[index];
+            SpriteRenderer rendererReference = renderers[index];
             if (rendererReference == null)
             {
                 continue;
@@ -230,28 +237,53 @@ public sealed class WorldRevealMaskController : MonoBehaviour
         float preferredMaskPixelsPerUnit,
         int preferredMaxMaskTextureSize)
     {
+        bool configurationChanged = false;
+
         if (preferredMapRoot != null)
         {
-            mapRoot = preferredMapRoot;
+            if (mapRoot != preferredMapRoot)
+            {
+                mapRoot = preferredMapRoot;
+                configurationChanged = true;
+            }
         }
 
-        if (!string.IsNullOrWhiteSpace(preferredMapRootName))
+        if (!string.IsNullOrWhiteSpace(preferredMapRootName) && mapRootName != preferredMapRootName)
         {
             mapRootName = preferredMapRootName;
+            configurationChanged = true;
         }
 
-        if (!string.IsNullOrWhiteSpace(preferredRevealMaskName))
+        if (!string.IsNullOrWhiteSpace(preferredRevealMaskName) && revealMaskName != preferredRevealMaskName)
         {
             revealMaskName = preferredRevealMaskName;
+            configurationChanged = true;
         }
 
-        maskPixelsPerUnit = Mathf.Clamp(preferredMaskPixelsPerUnit, 1f, 64f);
-        maxMaskTextureSize = Mathf.Clamp(preferredMaxMaskTextureSize, 256, 4096);
+        float clampedMaskPixelsPerUnit = Mathf.Clamp(preferredMaskPixelsPerUnit, 1f, 64f);
+        if (!Mathf.Approximately(maskPixelsPerUnit, clampedMaskPixelsPerUnit))
+        {
+            maskPixelsPerUnit = clampedMaskPixelsPerUnit;
+            configurationChanged = true;
+        }
+
+        int clampedMaxMaskTextureSize = Mathf.Clamp(preferredMaxMaskTextureSize, 256, 4096);
+        if (maxMaskTextureSize != clampedMaxMaskTextureSize)
+        {
+            maxMaskTextureSize = clampedMaxMaskTextureSize;
+            configurationChanged = true;
+        }
 
         ResolveMapRoot();
         if (mapRoot != null && transform.parent != mapRoot)
         {
             transform.SetParent(mapRoot, false);
+            configurationChanged = true;
+        }
+
+        if (configurationChanged)
+        {
+            configurationDirty = true;
         }
     }
 
@@ -345,9 +377,20 @@ public sealed class WorldRevealMaskController : MonoBehaviour
         }
 
         hasLoggedMissingMapBounds = false;
-        if (revealMask != null && generatedMaskTexture != null && !BoundsChanged(currentBounds))
+        if (revealMask != null && generatedMaskTexture != null)
         {
-            return true;
+            if (!configurationDirty)
+            {
+                if (Application.isPlaying && ignoreRuntimeBoundsChangesAfterBuild)
+                {
+                    return true;
+                }
+
+                if (!BoundsChanged(currentBounds))
+                {
+                    return true;
+                }
+            }
         }
 
         ResolveMapRoot();
@@ -415,6 +458,7 @@ public sealed class WorldRevealMaskController : MonoBehaviour
         maskDirty = false;
         hasDirtyRect = false;
         dirtyPixels = null;
+        configurationDirty = false;
     }
 
     private void ComputeMaskTextureSize(Vector2 size, out int width, out int height)
@@ -576,6 +620,7 @@ public sealed class WorldRevealMaskController : MonoBehaviour
         dirtyPixels = null;
         maskDirty = false;
         hasDirtyRect = false;
+        configurationDirty = false;
     }
 
     private static void DestroyRuntimeObject(Object target)

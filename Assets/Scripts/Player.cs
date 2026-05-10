@@ -6,16 +6,19 @@ public sealed class Player : MonoBehaviour, IDamageable
     [SerializeField, Min(0f)] private float moveSpeed = 5f;
     [SerializeField, Min(0f)] private float maxHealth = 100f;
     [SerializeField, Min(0f)] private float currentHealth = 100f;
+    [SerializeField, Min(0f)] private float damageCooldownSeconds = 0.25f;
     [SerializeField, Min(0f)] private float attackPowerPercent = 100f;
     [SerializeField, Min(0f)] private float physicalAttack = 10f;
     [SerializeField, Min(0f)] private float magicalAttack = 10f;
     [SerializeField, Range(0f, 100f)] private float dodgePercent = 5f;
 
     private UnitDamageFlash damageFlash;
+    private float nextDamageAllowedTime;
 
     public float MoveSpeed => moveSpeed;
     public float MaxHealth => maxHealth;
     public float CurrentHealth => currentHealth;
+    public float DamageCooldownSeconds => damageCooldownSeconds;
     public float AttackPowerPercent => attackPowerPercent;
     public float PhysicalAttack => physicalAttack;
     public float MagicalAttack => magicalAttack;
@@ -26,6 +29,7 @@ public sealed class Player : MonoBehaviour, IDamageable
     private void Awake()
     {
         currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
+        nextDamageAllowedTime = 0f;
         damageFlash = GetComponent<UnitDamageFlash>();
         if (damageFlash == null)
         {
@@ -76,7 +80,14 @@ public sealed class Player : MonoBehaviour, IDamageable
             return false;
         }
 
+        float currentTime = Time.time;
+        if (damageCooldownSeconds > 0f && currentTime < nextDamageAllowedTime)
+        {
+            return false;
+        }
+
         currentHealth = Mathf.Max(currentHealth - amount, 0f);
+        nextDamageAllowedTime = currentTime + damageCooldownSeconds;
         damageFlash?.PlayFlash();
         return true;
     }
@@ -86,6 +97,7 @@ public sealed class Player : MonoBehaviour, IDamageable
         moveSpeed = Mathf.Max(0f, moveSpeed);
         maxHealth = Mathf.Max(0f, maxHealth);
         currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
+        damageCooldownSeconds = Mathf.Max(0f, damageCooldownSeconds);
         attackPowerPercent = Mathf.Max(0f, attackPowerPercent);
         physicalAttack = Mathf.Max(0f, physicalAttack);
         magicalAttack = Mathf.Max(0f, magicalAttack);

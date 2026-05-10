@@ -52,7 +52,7 @@ MonoBehaviour:
   revealMaskName: WorldRevealMask
   brushStrength: 1
   brushMinRadius: 0.05
-  brushMaxRadius: 0.15
+  brushMaxRadius: 0.25
   brushStationaryMaxRadius: 2.15
   brushHardness: 0.56
   brushSpacingRatio: 0.1

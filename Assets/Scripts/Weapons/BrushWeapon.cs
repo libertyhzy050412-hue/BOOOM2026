@@ -117,7 +117,7 @@ public sealed class BrushWeapon : WeaponBase
         {
             stationaryTime += safeDeltaTime;
             stationaryPaintTimer += safeDeltaTime;
-            visualRadius = Mathf.Min(targetRadius + stationaryTime * brushSpreadPerSecond, EvaluateEffectiveStationaryMaxRadius());
+            visualRadius = targetRadius;
 
             if (stationaryPaintTimer >= stationaryPaintInterval)
             {

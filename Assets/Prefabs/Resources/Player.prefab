@@ -57,6 +57,7 @@ MonoBehaviour:
   moveSpeed: 7
   maxHealth: 100
   currentHealth: 100
+  damageCooldownSeconds: 0.33
   attackPowerPercent: 100
   physicalAttack: 10
   magicalAttack: 10
