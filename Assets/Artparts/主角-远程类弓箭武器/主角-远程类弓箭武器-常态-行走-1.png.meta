@@ -1,13 +1,10 @@
 fileFormatVersion: 2
-guid: 67002fe829c11c84fb87826f1556f273
+guid: ce40bf173abcc5b40b048dd486442709
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -4032760656377300063
-    second: "\u8FDC\u7A0B\u602A-\u773C\u775B_0"
-  - first:
-      213: 528140635904028672
-    second: "\u8FDC\u7A0B\u602A-\u773C\u775B_1"
+      213: -7352087412215649293
+    second: "\u4E3B\u89D2-\u8FDC\u7A0B\u7C7B\u5F13\u7BAD\u6B66\u5668-\u5E38\u6001-\u884C\u8D70-1_0"
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -103,13 +100,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: "\u8FDC\u7A0B\u602A-\u773C\u775B_0"
+      name: "\u4E3B\u89D2-\u8FDC\u7A0B\u7C7B\u5F13\u7BAD\u6B66\u5668-\u5E38\u6001-\u884C\u8D70-1_0"
       rect:
         serializedVersion: 2
-        x: 0
-        y: 1
-        width: 186
-        height: 152
+        x: 283
+        y: 56
+        width: 624
+        height: 779
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -118,30 +115,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 1abb57cac81c808c0800000000000000
-      internalID: -4032760656377300063
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: "\u8FDC\u7A0B\u602A-\u773C\u775B_1"
-      rect:
-        serializedVersion: 2
-        x: 126
-        y: 0
-        width: 37
-        height: 25
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 00032823c15545700800000000000000
-      internalID: 528140635904028672
+      spriteID: 3fbe34d937328f990800000000000000
+      internalID: -7352087412215649293
       vertices: []
       indices: 
       edges: []
@@ -160,8 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      "\u8FDC\u7A0B\u602A-\u773C\u775B_0": -4032760656377300063
-      "\u8FDC\u7A0B\u602A-\u773C\u775B_1": 528140635904028672
+      "\u4E3B\u89D2-\u8FDC\u7A0B\u7C7B\u5F13\u7BAD\u6B66\u5668-\u5E38\u6001-\u884C\u8D70-1_0": -7352087412215649293
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
