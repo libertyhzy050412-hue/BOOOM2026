@@ -10,6 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 2959518105221887134}
   - component: {fileID: 4052499550530570576}
+  - component: {fileID: 3124245491261152034}
+  - component: {fileID: 6622767307190761209}
+  - component: {fileID: 8397797360375559176}
   m_Layer: 0
   m_Name: Normal
   m_TagString: Untagged
@@ -48,7 +51,7 @@ MonoBehaviour:
   targetPlayer: {fileID: 0}
   enemyEnabled: 1
   useRigidbodyMovement: 1
-  moveSpeed: 2.5
+  moveSpeed: 2
   maxHealth: 10
   currentHealth: 10
   restoreOuterWorldAlongPath: 1
@@ -58,6 +61,79 @@ MonoBehaviour:
   restoreStrength: 1
   stationaryRestoreInterval: 0.12
   stopDistance: 0.1
+--- !u!114 &3124245491261152034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3538186809061982931}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c7c19744fe60c7499a6234671c9eb19, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UnitDamageFlash
+  spriteRoot: {fileID: 0}
+  flashColor: {r: 1, g: 0.2, b: 0.2, a: 1}
+  flashDuration: 0.08
+--- !u!70 &6622767307190761209
+CapsuleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3538186809061982931}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0.009970665, y: 0.06979656}
+  m_Size: {x: 0.9985447, y: 1.3656006}
+  m_Direction: 0
+--- !u!114 &8397797360375559176
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3538186809061982931}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3e884a10e532cb40b3cbee1be972cd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ContactDamageDealer
+  sourceTeam: 2
+  damageAmount: 1
+  hitCooldown: 0.5
+  hitOnTrigger: 1
+  hitOnTriggerStay: 1
+  hitOnCollision: 1
+  hitOnCollisionStay: 1
+  autoResolveSourceTeam: 1
+  requireWeaponOrSummonForPlayerDamage: 1
 --- !u!1 &8860701951397900350
 GameObject:
   m_ObjectHideFlags: 0

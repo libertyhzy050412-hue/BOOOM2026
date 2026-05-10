@@ -12,6 +12,8 @@ GameObject:
   - component: {fileID: 7441557987474483109}
   - component: {fileID: 3383019259175398533}
   - component: {fileID: 5852374124423419086}
+  - component: {fileID: 2591859541894254926}
+  - component: {fileID: 6434574282328657266}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -97,6 +99,41 @@ Rigidbody2D:
   m_SleepingMode: 0
   m_CollisionDetection: 0
   m_Constraints: 4
+--- !u!114 &2591859541894254926
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3039715548730171676}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c7c19744fe60c7499a6234671c9eb19, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UnitDamageFlash
+  spriteRoot: {fileID: 0}
+  flashColor: {r: 1, g: 0.2, b: 0.2, a: 1}
+  flashDuration: 0.08
+--- !u!114 &6434574282328657266
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3039715548730171676}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3e884a10e532cb40b3cbee1be972cd1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ContactDamageDealer
+  sourceTeam: 1
+  damageAmount: 1
+  hitCooldown: 0.2
+  hitOnTrigger: 1
+  hitOnTriggerStay: 1
+  hitOnCollision: 1
+  hitOnCollisionStay: 1
+  autoResolveSourceTeam: 1
 --- !u!1 &4220503421743516098
 GameObject:
   m_ObjectHideFlags: 0

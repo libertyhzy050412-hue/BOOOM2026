@@ -7,13 +7,16 @@ public abstract class SummonBase : MonoBehaviour
     [SerializeField] private bool summonEnabled = true;
     [SerializeField] private bool useRigidbodyMovement = true;
     [SerializeField, Min(0f)] private float moveSpeed = 4f;
+    [SerializeField, Min(0.01f)] private float lifetimeSeconds = 10f;
 
     private Rigidbody2D cachedRigidbody;
     private Vector2 pendingMoveDirection;
+    private float lifetimeTimer;
 
     public Player Owner => owner;
     public bool SummonEnabled => summonEnabled;
     public float MoveSpeed => moveSpeed;
+    public float LifetimeSeconds => lifetimeSeconds;
 
     protected virtual void Reset()
     {
@@ -25,10 +28,18 @@ public abstract class SummonBase : MonoBehaviour
     {
         cachedRigidbody = GetComponent<Rigidbody2D>();
         ResolveOwner();
+        lifetimeTimer = 0f;
     }
 
     protected virtual void Update()
     {
+        lifetimeTimer += Time.deltaTime;
+        if (lifetimeTimer >= lifetimeSeconds)
+        {
+            OnLifetimeExpired();
+            return;
+        }
+
         ResolveOwner();
         if (!summonEnabled)
         {
@@ -89,6 +100,11 @@ public abstract class SummonBase : MonoBehaviour
 
     protected virtual void OnSummonDisabled()
     {
+    }
+
+    protected virtual void OnLifetimeExpired()
+    {
+        Destroy(gameObject);
     }
 
     protected void SetMoveSpeed(float value)
@@ -167,5 +183,6 @@ public abstract class SummonBase : MonoBehaviour
     private void OnValidate()
     {
         moveSpeed = Mathf.Max(0f, moveSpeed);
+        lifetimeSeconds = Mathf.Max(0.01f, lifetimeSeconds);
     }
 }
