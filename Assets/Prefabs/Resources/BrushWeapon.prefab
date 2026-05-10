@@ -51,9 +51,9 @@ MonoBehaviour:
   mapRootName: MapRoot
   revealMaskName: WorldRevealMask
   brushStrength: 1
-  brushMinRadius: 0.1
-  brushMaxRadius: 2.5
-  brushStationaryMaxRadius: 10
+  brushMinRadius: 0.8
+  brushMaxRadius: 2
+  brushStationaryMaxRadius: 2.5
   brushHardness: 0.56
   brushSpacingRatio: 0.1
   brushSpreadPerSecond: 1.05

@@ -48,7 +48,7 @@ MonoBehaviour:
   owner: {fileID: 0}
   summonEnabled: 1
   useRigidbodyMovement: 1
-  moveSpeed: 5
+  moveSpeed: 5.7
   lifetimeSeconds: 10
   followSpeed: 3.6
   chaseSpeed: 4.8
