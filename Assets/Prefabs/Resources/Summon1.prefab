@@ -48,7 +48,7 @@ MonoBehaviour:
   owner: {fileID: 0}
   summonEnabled: 1
   useRigidbodyMovement: 1
-  moveSpeed: 4
+  moveSpeed: 5
   lifetimeSeconds: 10
   followSpeed: 3.6
   chaseSpeed: 4.8
@@ -144,7 +144,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 2
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -4032760656377300063, guid: 7400628165103ca499ed31d0937e8299, type: 3}
+  m_Sprite: {fileID: -4032760656377300063, guid: bad212738a1579c40a6c22fde2d1cf75, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0

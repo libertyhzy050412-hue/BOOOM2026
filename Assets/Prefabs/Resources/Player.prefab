@@ -54,7 +54,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3bc4e46c44249ef4789f1ca7257bbc34, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player
-  moveSpeed: 5
+  moveSpeed: 7
   maxHealth: 100
   currentHealth: 100
   attackPowerPercent: 100
@@ -478,6 +478,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7195041994544000096}
     m_Modifications:
+    - target: {fileID: 2172524566002302751, guid: a6d5b3c6788186c4ea00f075752a6c08, type: 3}
+      propertyPath: mapRoot
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 2172524566002302751, guid: a6d5b3c6788186c4ea00f075752a6c08, type: 3}
       propertyPath: chunkLayerMask.m_Bits
       value: 51
