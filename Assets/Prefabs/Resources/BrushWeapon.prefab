@@ -51,17 +51,17 @@ MonoBehaviour:
   mapRootName: MapRoot
   revealMaskName: WorldRevealMask
   brushStrength: 1
-  brushMinRadius: 0.05
-  brushMaxRadius: 0.25
-  brushStationaryMaxRadius: 2.15
+  brushMinRadius: 0.1
+  brushMaxRadius: 2.5
+  brushStationaryMaxRadius: 10
   brushHardness: 0.56
   brushSpacingRatio: 0.1
   brushSpreadPerSecond: 1.05
   brushThinSpeedStart: 2
   brushThinSpeedEnd: 15
-  fastMoveRadiusFactor: 0.15
+  fastMoveRadiusFactor: 0.36
   cursorSpeedSmoothing: 14
-  stationaryPaintInterval: 0.01
+  stationaryPaintInterval: 0.055
   maxDistanceFromOwner: 0
   showRangeWhilePainting: 1
   showRangeWhileIdle: 1
