@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5482442909137978993}
   - component: {fileID: 2172524566002302751}
+  - component: {fileID: 2506497932928206846}
   m_Layer: 0
   m_Name: BrushWeapon
   m_TagString: Untagged
@@ -70,6 +71,11 @@ MonoBehaviour:
   generatedSpriteResolution: 128
   maskPixelsPerUnit: 16
   maxMaskTextureSize: 2048
+  maxInkAmount: 30
+  inkCostPerWorldUnit: 1
+  inkRecoveryDelay: 0.8
+  inkRecoveryPerSecond: 4
+  depletedInkResumeNormalized: 0.12
   enableSummonSpawning: 1
   summonOnePrefab: {fileID: 804503144097626695, guid: 76d1daf117459ce4b801aa7687a59d54, type: 3}
   summonRoot: {fileID: 0}
@@ -81,3 +87,27 @@ MonoBehaviour:
   summonMinSpacing: 0.75
   summonRevealAlphaThreshold: 0.12
   summonSpawnSampleAttempts: 24
+--- !u!114 &2506497932928206846
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3967597092999760191}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e070525112be22b40b6c88b86755ca66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BrushInkUi
+  brushWeapon: {fileID: 0}
+  showWhenWeaponDisabled: 0
+  showNumericValue: 1
+  inkLabel: "\u989C\u6599"
+  uiWidth: 240
+  uiHeight: 26
+  screenMarginX: 18
+  screenMarginY: 18
+  backgroundColor: {r: 0, g: 0, b: 0, a: 0.65}
+  fillColor: {r: 0.95, g: 0.74, b: 0.2, a: 1}
+  recoveringFillColor: {r: 0.45, g: 0.9, b: 0.55, a: 1}
+  textColor: {r: 1, g: 1, b: 1, a: 1}
