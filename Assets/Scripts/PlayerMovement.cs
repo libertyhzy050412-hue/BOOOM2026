@@ -14,7 +14,8 @@ public sealed class PlayerMovement : MonoBehaviour
     private Vector2 moveInput;
     private readonly RaycastHit2D[] castResults = new RaycastHit2D[8];
     private ContactFilter2D movementFilter;
-
+    
+    
     private void Reset()
     {
         controlledBody = GetComponent<Rigidbody2D>();
@@ -39,6 +40,7 @@ public sealed class PlayerMovement : MonoBehaviour
         movementFilter = new ContactFilter2D();
         movementFilter.useLayerMask = false;
         movementFilter.useTriggers = false;
+        
     }
 
     private void Update()
