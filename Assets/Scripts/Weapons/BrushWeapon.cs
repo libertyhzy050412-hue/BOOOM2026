@@ -18,6 +18,8 @@ public sealed class BrushWeapon : WeaponBase
     [SerializeField, Min(0f)] private float brushSpreadPerSecond = 1.05f;
     [SerializeField, Min(0f)] private float brushThinSpeedStart = 2f;
     [SerializeField, Min(0.01f)] private float brushThinSpeedEnd = 15f;
+    [SerializeField, Min(0.01f)] private float brushStartExpandDuration = 0.16f;
+    [SerializeField, Min(0f)] private float brushStartToSpeedBlendDuration = 0.1f;
     [SerializeField, Range(0.15f, 1f)] private float fastMoveRadiusFactor = 0.36f;
     [SerializeField, Min(0.1f)] private float cursorSpeedSmoothing = 14f;
     [SerializeField, Min(0.01f)] private float stationaryPaintInterval = 0.055f;
@@ -56,6 +58,7 @@ public sealed class BrushWeapon : WeaponBase
     private Vector3 lastCursorPosition;
     private Vector3 lastPaintPosition;
     private float lastPaintRadius;
+    private float strokeElapsedTime;
     private float smoothedCursorSpeed;
     private float stationaryTime;
     private float stationaryPaintTimer;
@@ -134,6 +137,7 @@ public sealed class BrushWeapon : WeaponBase
         }
 
         float safeDeltaTime = Mathf.Max(deltaTime, 0.0001f);
+        strokeElapsedTime += safeDeltaTime;
         float cursorDistance = Vector2.Distance(pointerPosition, lastCursorPosition);
         float rawCursorSpeed = cursorDistance / safeDeltaTime;
         float speedLerp = 1f - Mathf.Exp(-cursorSpeedSmoothing * safeDeltaTime);
@@ -209,6 +213,8 @@ public sealed class BrushWeapon : WeaponBase
         brushSpreadPerSecond = Mathf.Max(0f, brushSpreadPerSecond);
         brushThinSpeedStart = Mathf.Max(0f, brushThinSpeedStart);
         brushThinSpeedEnd = Mathf.Max(brushThinSpeedStart + 0.01f, brushThinSpeedEnd);
+        brushStartExpandDuration = Mathf.Max(0.01f, brushStartExpandDuration);
+        brushStartToSpeedBlendDuration = Mathf.Max(0f, brushStartToSpeedBlendDuration);
         fastMoveRadiusFactor = Mathf.Clamp(fastMoveRadiusFactor, 0.15f, 1f);
         cursorSpeedSmoothing = Mathf.Max(0.1f, cursorSpeedSmoothing);
         stationaryPaintInterval = Mathf.Max(0.01f, stationaryPaintInterval);
@@ -261,10 +267,11 @@ public sealed class BrushWeapon : WeaponBase
     private void StartStroke(Vector3 pointerPosition)
     {
         strokeActive = true;
+        strokeElapsedTime = 0f;
         smoothedCursorSpeed = 0f;
         lastCursorPosition = pointerPosition;
         lastPaintPosition = pointerPosition;
-        lastPaintRadius = EvaluateEffectiveMaxRadius();
+        lastPaintRadius = EvaluateEffectiveMinRadius();
         stationaryTime = 0f;
         stationaryPaintTimer = 0f;
         currentVisualRadius = lastPaintRadius;
@@ -275,6 +282,7 @@ public sealed class BrushWeapon : WeaponBase
     private void ResetStrokeState()
     {
         strokeActive = false;
+        strokeElapsedTime = 0f;
         smoothedCursorSpeed = 0f;
         stationaryTime = 0f;
         stationaryPaintTimer = 0f;
@@ -306,8 +314,20 @@ public sealed class BrushWeapon : WeaponBase
         float maxRadius = EvaluateEffectiveMaxRadius();
         float minRadius = EvaluateEffectiveMinRadius();
         float thinAmount = Mathf.InverseLerp(brushThinSpeedStart, brushThinSpeedEnd, cursorSpeed);
-        float thinnedRadius = Mathf.Lerp(maxRadius, Mathf.Max(minRadius, maxRadius * fastMoveRadiusFactor), thinAmount);
-        return Mathf.Clamp(thinnedRadius, minRadius, maxRadius);
+        float speedControlledRadius = Mathf.Lerp(maxRadius, Mathf.Max(minRadius, maxRadius * fastMoveRadiusFactor), thinAmount);
+        speedControlledRadius = Mathf.Clamp(speedControlledRadius, minRadius, maxRadius);
+
+        float startExpandProgress = Mathf.Clamp01(strokeElapsedTime / brushStartExpandDuration);
+        float easedExpandProgress = Mathf.SmoothStep(0f, 1f, startExpandProgress);
+        float startExpandRadius = Mathf.Lerp(minRadius, maxRadius, easedExpandProgress);
+
+        if (brushStartToSpeedBlendDuration <= 0f)
+        {
+            return strokeElapsedTime < brushStartExpandDuration ? startExpandRadius : speedControlledRadius;
+        }
+
+        float speedBlendProgress = Mathf.Clamp01((strokeElapsedTime - brushStartExpandDuration) / brushStartToSpeedBlendDuration);
+        return Mathf.Lerp(startExpandRadius, speedControlledRadius, speedBlendProgress);
     }
 
     private bool CanPaintWithInk()
@@ -406,6 +426,7 @@ public sealed class BrushWeapon : WeaponBase
     private void BreakStrokeContinuity(Vector3 pointerPosition, float visualRadius)
     {
         strokeActive = false;
+        strokeElapsedTime = 0f;
         smoothedCursorSpeed = 0f;
         stationaryTime = 0f;
         stationaryPaintTimer = 0f;

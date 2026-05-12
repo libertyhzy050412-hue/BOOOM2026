@@ -300,6 +300,7 @@ GameObject:
   - component: {fileID: 1105370558}
   - component: {fileID: 1105370559}
   - component: {fileID: 1105370560}
+  - component: {fileID: 1105370561}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -359,6 +360,9 @@ MonoBehaviour:
   mapRoot: {fileID: 0}
   mapRootName: MapRoot
   initializeOnStart: 1
+  fallbackWeaponPrefab: {fileID: 0}
+  playerWeaponMountName: WeaponMount
+  resetWeaponLocalTransform: 1
 --- !u!114 &1105370559
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -407,8 +411,40 @@ MonoBehaviour:
   targetPlayer: {fileID: 0}
   autoStartOnPlay: 1
   initializeGameOnStart: 1
-  waveDurationSeconds: 60
+  startMenuSceneName: StartScene
+  waveDefinitions:
+  - name: Wave 1
+    durationSeconds: 60
+    enemyHealthMultiplier: 1
+    enemyDamageMultiplier: 1
+    enemyMoveSpeedMultiplier: 1
+    spawnRateMultiplier: 1
+  - name: Wave 2
+    durationSeconds: 65
+    enemyHealthMultiplier: 1.2
+    enemyDamageMultiplier: 1.1
+    enemyMoveSpeedMultiplier: 1.05
+    spawnRateMultiplier: 1.15
+  - name: Wave 3
+    durationSeconds: 70
+    enemyHealthMultiplier: 1.4
+    enemyDamageMultiplier: 1.2
+    enemyMoveSpeedMultiplier: 1.1
+    spawnRateMultiplier: 1.3
+  - name: Wave 4
+    durationSeconds: 75
+    enemyHealthMultiplier: 1.65
+    enemyDamageMultiplier: 1.35
+    enemyMoveSpeedMultiplier: 1.2
+    spawnRateMultiplier: 1.45
+  - name: Wave 5
+    durationSeconds: 90
+    enemyHealthMultiplier: 2
+    enemyDamageMultiplier: 1.5
+    enemyMoveSpeedMultiplier: 1.3
+    spawnRateMultiplier: 1.6
   resetSpawnerStateOnStart: 1
+  resetSpawnerStateEachWave: 1
   enableEnemySpawnerOnStart: 1
   stopEnemySpawnerOnSuccess: 1
   stopEnemySpawnerOnFailure: 1
@@ -417,8 +453,31 @@ MonoBehaviour:
   pauseTimeScaleOnWaveEnd: 1
   allowSpaceToRestartCurrentTestLevel: 1
   continueKey: 32
-  temporaryTestSuccessMessage: "\u5F53\u524D\u6CE2\u6B21\u7ED3\u675F\u3002\n\u6309\u7A7A\u683C\u8FDB\u5165\u4E0B\u4E00\u5173\u3002\n\u6D4B\u8BD5\u9636\u6BB5\u4F1A\u91CD\u5F00\u5F53\u524D\u5173\u5361\u3002"
+  temporaryTestSuccessMessage: "\u5F53\u524D\u6CE2\u6B21\u7ED3\u675F\u3002\n\u6309\u7A7A\u683C\u8FDB\u5165\u4E0B\u4E00\u5173\u3002"
+  finalWaveSuccessMessage: "\u5168\u90E8\u6CE2\u6B21\u5B8C\u6210\u3002\n\u6309\u7A7A\u683C\u8FD4\u56DE\u5F00\u59CB\u754C\u9762\u3002"
   temporaryTestFailureMessage: "\u6E38\u620F\u5931\u8D25\u3002\n\u6309\u7A7A\u683C\u91CD\u8BD5\u3002"
+--- !u!114 &1105370561
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1105370555}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 719be99d787df184f87f94979efce129, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PauseMenuGui
+  levelManager: {fileID: 0}
+  settingsButtonWidth: 92
+  settingsButtonHeight: 38
+  menuWidth: 320
+  menuHeight: 220
+  screenMargin: 16
+  settingsButtonText: "\u8BBE\u7F6E"
+  resumeButtonText: "\u7EE7\u7EED\u6E38\u620F"
+  returnButtonText: "\u8FD4\u56DE\u5F00\u59CB\u754C\u9762"
+  allowEscapeShortcut: 1
 --- !u!1 &1938352905
 GameObject:
   m_ObjectHideFlags: 0
@@ -455,6 +514,8 @@ MonoBehaviour:
   screenMargin: 16
   popupWidth: 460
   popupHeight: 220
+  popupButtonWidth: 180
+  popupButtonHeight: 42
 --- !u!4 &1938352907
 Transform:
   m_ObjectHideFlags: 0

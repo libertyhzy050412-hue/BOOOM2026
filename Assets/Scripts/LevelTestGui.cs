@@ -12,13 +12,19 @@ public sealed class LevelTestGui : MonoBehaviour
 
     [Header("Temporary Test Popup")]
     [SerializeField, Min(240f)] private float popupWidth = 460f;
-    [SerializeField, Min(140f)] private float popupHeight = 220f;
+    [SerializeField, Min(180f)] private float popupHeight = 280f;
+    [SerializeField, Min(120f)] private float popupButtonWidth = 180f;
+    [SerializeField, Min(32f)] private float popupButtonHeight = 42f;
 
-    private GUIStyle hudBoxStyle;
+    private GUIStyle hudTitleStyle;
+    private GUIStyle hudMetaStyle;
+    private GUIStyle hudValueStyle;
+    private GUIStyle barValueStyle;
     private GUIStyle hudLabelStyle;
-    private GUIStyle popupBoxStyle;
     private GUIStyle popupTitleStyle;
     private GUIStyle popupBodyStyle;
+    private GUIStyle popupMetaStyle;
+    private GUIStyle popupButtonStyle;
 
     private void Awake()
     {
@@ -35,12 +41,28 @@ public sealed class LevelTestGui : MonoBehaviour
 
     private void DrawHud()
     {
-        Rect hudRect = new Rect(screenMargin, screenMargin, hudWidth, hudHeight);
-        GUILayout.BeginArea(hudRect, hudBoxStyle);
-        GUILayout.Label($"测试关卡 波次: {GetWaveNumber()}", hudLabelStyle);
-        GUILayout.Label($"剩余时间: {FormatTime(GetRemainingTime())}", hudLabelStyle);
-        GUILayout.Label($"玩家血量: {GetHealthText()}", hudLabelStyle);
-        GUILayout.EndArea();
+        float cardWidth = Mathf.Min(Mathf.Max(hudWidth, Screen.width * 0.22f), Mathf.Max(hudWidth, SimpleGuiTheme.Scale(360f)));
+        float cardHeight = Mathf.Max(hudHeight + SimpleGuiTheme.Scale(48f), SimpleGuiTheme.Scale(164f));
+        Rect hudRect = new Rect(screenMargin, screenMargin, cardWidth, cardHeight);
+
+        SimpleGuiTheme.DrawPanel(hudRect, new Color(0.11f, 0.15f, 0.2f, 0.93f));
+
+        Rect contentRect = SimpleGuiTheme.Inset(hudRect, SimpleGuiTheme.Scale(16f), SimpleGuiTheme.Scale(14f));
+        float lineHeight = SimpleGuiTheme.Scale(20f);
+        float valueHeight = SimpleGuiTheme.Scale(30f);
+        float gap = SimpleGuiTheme.Scale(8f);
+
+        GUI.Label(new Rect(contentRect.x, contentRect.y, contentRect.width, lineHeight), "战斗概览", hudTitleStyle);
+        GUI.Label(new Rect(contentRect.x, contentRect.y + lineHeight + gap, contentRect.width, lineHeight), "当前波次", hudMetaStyle);
+        GUI.Label(new Rect(contentRect.x, contentRect.y + lineHeight + gap + SimpleGuiTheme.Scale(18f), contentRect.width, valueHeight), GetWaveProgressText(), hudValueStyle);
+
+        float timerY = contentRect.y + lineHeight + gap + valueHeight + SimpleGuiTheme.Scale(14f);
+        GUI.Label(new Rect(contentRect.x, timerY, contentRect.width, lineHeight), "剩余时间", hudMetaStyle);
+        GUI.Label(new Rect(contentRect.x, timerY + SimpleGuiTheme.Scale(18f), contentRect.width, valueHeight), FormatTime(GetRemainingTime()), hudLabelStyle);
+
+        float healthY = contentRect.yMax - SimpleGuiTheme.Scale(48f);
+        GUI.Label(new Rect(contentRect.x, healthY - SimpleGuiTheme.Scale(22f), contentRect.width, lineHeight), "玩家生命", hudMetaStyle);
+        DrawHealthBar(new Rect(contentRect.x, healthY, contentRect.width, SimpleGuiTheme.Scale(24f)), GetHealthText(), GetNormalizedHealth());
     }
 
     private void DrawPopup()
@@ -50,20 +72,51 @@ public sealed class LevelTestGui : MonoBehaviour
             return;
         }
 
-        Rect popupRect = new Rect(
-            (Screen.width - popupWidth) * 0.5f,
-            (Screen.height - popupHeight) * 0.5f,
-            popupWidth,
-            popupHeight);
+        SimpleGuiTheme.DrawOverlay(0.66f);
 
-        GUI.Box(popupRect, GUIContent.none, popupBoxStyle);
+        Rect popupRect = SimpleGuiTheme.CenterRect(0.42f, 0.4f, popupWidth, popupHeight, SimpleGuiTheme.Scale(24f));
+        SimpleGuiTheme.DrawPanel(popupRect, SimpleGuiTheme.PanelFillLightColor);
 
-        Rect contentRect = new Rect(popupRect.x + 20f, popupRect.y + 20f, popupRect.width - 40f, popupRect.height - 40f);
+        Rect contentRect = SimpleGuiTheme.Inset(popupRect, SimpleGuiTheme.Scale(24f), SimpleGuiTheme.Scale(22f));
+        float buttonWidth = Mathf.Min(popupButtonWidth, contentRect.width);
+        float buttonHeight = Mathf.Max(popupButtonHeight, SimpleGuiTheme.Scale(46f));
+
         GUILayout.BeginArea(contentRect);
         GUILayout.Label(levelManager.TemporaryTestPopupTitle, popupTitleStyle);
-        GUILayout.Space(16f);
+        GUILayout.Space(SimpleGuiTheme.Scale(10f));
+        GUILayout.Label($"当前波次: {GetPopupCurrentWaveText()}", popupMetaStyle);
+        GUILayout.Label($"下一波次: {GetPopupNextWaveText()}", popupMetaStyle);
+        GUILayout.Space(SimpleGuiTheme.Scale(14f));
         GUILayout.Label(levelManager.TemporaryTestPopupMessage, popupBodyStyle);
+        GUILayout.FlexibleSpace();
+
+        GUILayout.BeginHorizontal();
+        GUILayout.FlexibleSpace();
+        if (GUILayout.Button(levelManager.PopupPrimaryActionLabel, popupButtonStyle, GUILayout.Width(buttonWidth), GUILayout.Height(buttonHeight)))
+        {
+            levelManager.ExecutePopupPrimaryAction();
+        }
+        GUILayout.FlexibleSpace();
+        GUILayout.EndHorizontal();
+
         GUILayout.EndArea();
+    }
+
+    private void DrawHealthBar(Rect rect, string valueText, float normalizedValue)
+    {
+        SimpleGuiTheme.DrawSolidRect(rect, new Color(1f, 1f, 1f, 0.08f));
+
+        Rect innerRect = new Rect(rect.x + 2f, rect.y + 2f, rect.width - 4f, rect.height - 4f);
+        SimpleGuiTheme.DrawSolidRect(innerRect, new Color(0.08f, 0.11f, 0.14f, 0.95f));
+
+        float fillWidth = Mathf.Max(0f, innerRect.width * normalizedValue);
+        if (fillWidth > 0f)
+        {
+            Color fillColor = Color.Lerp(SimpleGuiTheme.DangerColor, SimpleGuiTheme.SuccessColor, normalizedValue);
+            SimpleGuiTheme.DrawSolidRect(new Rect(innerRect.x, innerRect.y, fillWidth, innerRect.height), fillColor);
+        }
+
+        GUI.Label(rect, valueText, barValueStyle);
     }
 
     private void ResolveReferences()
@@ -86,6 +139,16 @@ public sealed class LevelTestGui : MonoBehaviour
         return levelManager != null ? levelManager.CurrentWaveNumber : 1;
     }
 
+    private string GetWaveProgressText()
+    {
+        if (levelManager == null || levelManager.TotalWaveCount <= 0)
+        {
+            return "-- / --";
+        }
+
+        return $"{levelManager.CurrentWaveNumber} / {levelManager.TotalWaveCount}";
+    }
+
     private float GetRemainingTime()
     {
         return levelManager != null ? levelManager.RemainingTimeSeconds : 0f;
@@ -101,6 +164,41 @@ public sealed class LevelTestGui : MonoBehaviour
         return $"{Mathf.CeilToInt(targetPlayer.CurrentHealth)} / {Mathf.CeilToInt(targetPlayer.MaxHealth)}";
     }
 
+    private float GetNormalizedHealth()
+    {
+        if (targetPlayer == null || targetPlayer.MaxHealth <= 0f)
+        {
+            return 0f;
+        }
+
+        return Mathf.Clamp01(targetPlayer.CurrentHealth / targetPlayer.MaxHealth);
+    }
+
+    private string GetPopupCurrentWaveText()
+    {
+        if (levelManager == null || levelManager.PopupCurrentWaveNumber <= 0)
+        {
+            return "--";
+        }
+
+        return $"{levelManager.PopupCurrentWaveNumber} / {levelManager.TotalWaveCount}";
+    }
+
+    private string GetPopupNextWaveText()
+    {
+        if (levelManager == null)
+        {
+            return "--";
+        }
+
+        if (levelManager.PopupNextWaveNumber <= 0)
+        {
+            return "无";
+        }
+
+        return $"{levelManager.PopupNextWaveNumber} / {levelManager.TotalWaveCount}";
+    }
+
     private static string FormatTime(float seconds)
     {
         int totalSeconds = Mathf.Max(0, Mathf.CeilToInt(seconds));
@@ -111,46 +209,26 @@ public sealed class LevelTestGui : MonoBehaviour
 
     private void EnsureStyles()
     {
-        if (hudBoxStyle != null)
+        if (hudTitleStyle != null)
         {
             return;
         }
 
-        hudBoxStyle = new GUIStyle(GUI.skin.box)
-        {
-            fontSize = 16,
-            alignment = TextAnchor.UpperLeft,
-            padding = new RectOffset(12, 12, 12, 12)
-        };
+        hudTitleStyle = SimpleGuiTheme.CreateLabelStyle(18, FontStyle.Bold, TextAnchor.UpperLeft, SimpleGuiTheme.TextPrimaryColor, false);
+        hudMetaStyle = SimpleGuiTheme.CreateLabelStyle(14, FontStyle.Bold, TextAnchor.UpperLeft, SimpleGuiTheme.TextSecondaryColor, false);
+        hudValueStyle = SimpleGuiTheme.CreateLabelStyle(24, FontStyle.Bold, TextAnchor.UpperLeft, SimpleGuiTheme.AccentColor, false);
+        hudLabelStyle = SimpleGuiTheme.CreateLabelStyle(20, FontStyle.Bold, TextAnchor.UpperLeft, SimpleGuiTheme.TextPrimaryColor, false);
+        barValueStyle = SimpleGuiTheme.CreateLabelStyle(14, FontStyle.Bold, TextAnchor.MiddleCenter, SimpleGuiTheme.TextPrimaryColor, false);
 
-        hudLabelStyle = new GUIStyle(GUI.skin.label)
-        {
-            fontSize = 18,
-            normal = { textColor = Color.white }
-        };
-
-        popupBoxStyle = new GUIStyle(GUI.skin.box)
-        {
-            fontSize = 16,
-            alignment = TextAnchor.MiddleCenter,
-            padding = new RectOffset(20, 20, 20, 20)
-        };
-
-        popupTitleStyle = new GUIStyle(GUI.skin.label)
-        {
-            fontSize = 24,
-            fontStyle = FontStyle.Bold,
-            alignment = TextAnchor.UpperCenter,
-            normal = { textColor = Color.white }
-        };
-
-        popupBodyStyle = new GUIStyle(GUI.skin.label)
-        {
-            fontSize = 18,
-            wordWrap = true,
-            alignment = TextAnchor.UpperLeft,
-            normal = { textColor = Color.white }
-        };
+        popupTitleStyle = SimpleGuiTheme.CreateLabelStyle(26, FontStyle.Bold, TextAnchor.UpperCenter, SimpleGuiTheme.TextPrimaryColor, true);
+        popupBodyStyle = SimpleGuiTheme.CreateLabelStyle(18, FontStyle.Normal, TextAnchor.UpperLeft, SimpleGuiTheme.TextSecondaryColor, true);
+        popupMetaStyle = SimpleGuiTheme.CreateLabelStyle(17, FontStyle.Bold, TextAnchor.UpperLeft, SimpleGuiTheme.AccentMutedColor, false);
+        popupButtonStyle = SimpleGuiTheme.CreateButtonStyle(
+            18,
+            new Color(0.92f, 0.75f, 0.32f, 1f),
+            new Color(0.97f, 0.81f, 0.4f, 1f),
+            new Color(0.84f, 0.65f, 0.24f, 1f),
+            new Color(0.08f, 0.1f, 0.12f, 1f));
     }
 
     private void OnValidate()
@@ -159,6 +237,8 @@ public sealed class LevelTestGui : MonoBehaviour
         hudHeight = Mathf.Max(80f, hudHeight);
         screenMargin = Mathf.Max(0f, screenMargin);
         popupWidth = Mathf.Max(240f, popupWidth);
-        popupHeight = Mathf.Max(140f, popupHeight);
+        popupHeight = Mathf.Max(180f, popupHeight);
+        popupButtonWidth = Mathf.Max(120f, popupButtonWidth);
+        popupButtonHeight = Mathf.Max(32f, popupButtonHeight);
     }
 }
