@@ -27,6 +27,8 @@ public sealed class PauseMenuGui : MonoBehaviour
     private GUIStyle buttonStyle;
     private GUIStyle returnButtonStyle;
     private GUIStyle hintStyle;
+    private Vector2 menuScrollPosition;
+    private int lastLayoutSignature = int.MinValue;
 
     private void Awake()
     {
@@ -69,11 +71,14 @@ public sealed class PauseMenuGui : MonoBehaviour
             return;
         }
 
+        Rect safeArea = SimpleGuiTheme.GetSafeArea(screenMargin);
+        float buttonWidth = Mathf.Min(settingsButtonWidth, safeArea.width);
+        float buttonHeight = Mathf.Min(settingsButtonHeight, safeArea.height);
         Rect buttonRect = new Rect(
-            Screen.width - screenMargin - settingsButtonWidth,
-            screenMargin,
-            settingsButtonWidth,
-            settingsButtonHeight);
+            safeArea.xMax - buttonWidth,
+            safeArea.y,
+            buttonWidth,
+            buttonHeight);
 
         if (GuiAudioButton.Button("PauseMenu/Settings", buttonRect, settingsButtonText, settingsButtonStyle))
         {
@@ -95,8 +100,13 @@ public sealed class PauseMenuGui : MonoBehaviour
 
         Rect contentRect = SimpleGuiTheme.Inset(panelRect, SimpleGuiTheme.Scale(24f), SimpleGuiTheme.Scale(22f));
         float buttonHeight = Mathf.Max(SimpleGuiTheme.Scale(44f), 42f);
+        float preferredContentHeight = Mathf.Max(contentRect.height, SimpleGuiTheme.Scale(430f));
+        bool needsScroll = preferredContentHeight > contentRect.height;
+        float viewWidth = Mathf.Max(0f, contentRect.width - (needsScroll ? SimpleGuiTheme.Scale(18f) : 0f));
+        Rect viewRect = new Rect(0f, 0f, viewWidth, preferredContentHeight);
 
-        GUILayout.BeginArea(contentRect);
+        menuScrollPosition = GUI.BeginScrollView(contentRect, menuScrollPosition, viewRect, false, needsScroll);
+        GUILayout.BeginArea(new Rect(0f, 0f, viewRect.width, viewRect.height));
         GUILayout.Label("游戏设置", titleStyle);
         GUILayout.Space(SimpleGuiTheme.Scale(8f));
         GUILayout.Label("可以在这里直接调整音乐和音效音量。", bodyStyle);
@@ -122,6 +132,7 @@ public sealed class PauseMenuGui : MonoBehaviour
         GUILayout.Label("按 Esc 也可以继续游戏", hintStyle);
 
         GUILayout.EndArea();
+    GUI.EndScrollView();
     }
 
     private void DrawAudioSettings()
@@ -203,10 +214,13 @@ public sealed class PauseMenuGui : MonoBehaviour
 
     private void EnsureStyles()
     {
-        if (titleStyle != null)
+        int layoutSignature = SimpleGuiTheme.GetLayoutSignature();
+        if (titleStyle != null && lastLayoutSignature == layoutSignature)
         {
             return;
         }
+
+        lastLayoutSignature = layoutSignature;
 
         titleStyle = SimpleGuiTheme.CreateLabelStyle(26, FontStyle.Bold, TextAnchor.UpperCenter, SimpleGuiTheme.TextPrimaryColor, true);
         bodyStyle = SimpleGuiTheme.CreateLabelStyle(16, FontStyle.Normal, TextAnchor.UpperCenter, SimpleGuiTheme.TextSecondaryColor, true);

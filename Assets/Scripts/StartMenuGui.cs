@@ -20,6 +20,8 @@ public sealed class StartMenuGui : MonoBehaviour
     private GUIStyle hintStyle;
     private GUIStyle primaryButtonStyle;
     private GUIStyle secondaryButtonStyle;
+    private Vector2 menuScrollPosition;
+    private int lastLayoutSignature = int.MinValue;
 
     private void Awake()
     {
@@ -45,8 +47,13 @@ public sealed class StartMenuGui : MonoBehaviour
         Rect contentRect = SimpleGuiTheme.Inset(panelRect, SimpleGuiTheme.Scale(42f), SimpleGuiTheme.Scale(36f));
         float actionWidth = Mathf.Min(Mathf.Max(buttonWidth, panelRect.width * 0.32f), contentRect.width);
         float actionHeight = Mathf.Max(buttonHeight, SimpleGuiTheme.Scale(56f));
+        float preferredContentHeight = Mathf.Max(contentRect.height, SimpleGuiTheme.Scale(380f));
+        bool needsScroll = preferredContentHeight > contentRect.height;
+        float viewWidth = Mathf.Max(0f, contentRect.width - (needsScroll ? SimpleGuiTheme.Scale(18f) : 0f));
+        Rect viewRect = new Rect(0f, 0f, viewWidth, preferredContentHeight);
 
-        GUILayout.BeginArea(contentRect);
+        menuScrollPosition = GUI.BeginScrollView(contentRect, menuScrollPosition, viewRect, false, needsScroll);
+        GUILayout.BeginArea(new Rect(0f, 0f, viewRect.width, viewRect.height));
         GUILayout.Space(SimpleGuiTheme.Scale(16f));
         GUILayout.Label(gameTitle, titleStyle);
         GUILayout.Space(SimpleGuiTheme.Scale(12f));
@@ -78,6 +85,7 @@ public sealed class StartMenuGui : MonoBehaviour
 
         GUILayout.FlexibleSpace();
         GUILayout.EndArea();
+    GUI.EndScrollView();
     }
 
     public void StartGame()
@@ -149,10 +157,13 @@ public sealed class StartMenuGui : MonoBehaviour
 
     private void EnsureStyles()
     {
-        if (titleStyle != null)
+        int layoutSignature = SimpleGuiTheme.GetLayoutSignature();
+        if (titleStyle != null && lastLayoutSignature == layoutSignature)
         {
             return;
         }
+
+        lastLayoutSignature = layoutSignature;
 
         titleStyle = SimpleGuiTheme.CreateLabelStyle(42, FontStyle.Bold, TextAnchor.MiddleCenter, SimpleGuiTheme.TextPrimaryColor, true);
         subtitleStyle = SimpleGuiTheme.CreateLabelStyle(20, FontStyle.Normal, TextAnchor.MiddleCenter, SimpleGuiTheme.TextSecondaryColor, true);

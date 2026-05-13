@@ -38,6 +38,7 @@ public sealed class WeaponSelectionMenuGui : MonoBehaviour
     private GUIStyle missingStateStyle;
     private GUIStyle backButtonStyle;
     private Vector2 scrollPosition;
+    private int lastLayoutSignature = int.MinValue;
 
     private void OnEnable()
     {
@@ -209,10 +210,13 @@ public sealed class WeaponSelectionMenuGui : MonoBehaviour
 
     private void EnsureStyles()
     {
-        if (titleStyle != null)
+        int layoutSignature = SimpleGuiTheme.GetLayoutSignature();
+        if (titleStyle != null && lastLayoutSignature == layoutSignature)
         {
             return;
         }
+
+        lastLayoutSignature = layoutSignature;
 
         titleStyle = SimpleGuiTheme.CreateLabelStyle(30, FontStyle.Bold, TextAnchor.UpperLeft, SimpleGuiTheme.TextPrimaryColor, true);
         subtitleStyle = SimpleGuiTheme.CreateLabelStyle(18, FontStyle.Normal, TextAnchor.UpperLeft, SimpleGuiTheme.TextSecondaryColor, true);
