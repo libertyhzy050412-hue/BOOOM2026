@@ -71,11 +71,13 @@ public sealed class LevelManager : MonoBehaviour
     private int currentWaveIndex;
     private float remainingTimeSeconds;
     private bool showTemporaryTestPopup;
+    private bool showRewardSelection;
     private string temporaryTestPopupTitle = string.Empty;
     private string temporaryTestPopupMessage = string.Empty;
     private int popupCurrentWaveNumber;
     private int popupNextWaveNumber;
     private bool pauseMenuOpen;
+    private readonly List<RewardType> activeRewardOffers = new List<RewardType>();
 
     public LevelState CurrentState => currentState;
     public float RemainingTimeSeconds => remainingTimeSeconds;
@@ -89,13 +91,15 @@ public sealed class LevelManager : MonoBehaviour
     public string PopupPrimaryActionLabel => GetPopupPrimaryActionLabel();
     public Player TargetPlayer => targetPlayer;
     public bool ShowTemporaryTestPopup => showTemporaryTestPopup;
+    public bool ShowRewardSelection => showRewardSelection;
     public string TemporaryTestPopupTitle => temporaryTestPopupTitle;
     public string TemporaryTestPopupMessage => temporaryTestPopupMessage;
     public KeyCode TemporaryTestContinueKey => continueKey;
     public bool PauseMenuOpen => pauseMenuOpen;
     public bool HasNextWave => currentWaveIndex >= 0 && currentWaveIndex < TotalWaveCount - 1;
-    public bool CanOpenPauseMenu => !showTemporaryTestPopup && currentState == LevelState.Running;
+    public bool CanOpenPauseMenu => !showTemporaryTestPopup && !showRewardSelection && currentState == LevelState.Running;
     public string StartMenuSceneName => startMenuSceneName;
+    public int RewardOfferCount => activeRewardOffers.Count;
 
     private void Awake()
     {
@@ -105,6 +109,7 @@ public sealed class LevelManager : MonoBehaviour
         ResolveReferences();
         remainingTimeSeconds = GetCurrentWaveDuration();
         ClearTemporaryTestPopup();
+        ClearRewardSelection();
         RefreshTimeScale();
     }
 
@@ -118,6 +123,11 @@ public sealed class LevelManager : MonoBehaviour
 
     private void Update()
     {
+        if (showRewardSelection)
+        {
+            return;
+        }
+
         if (showTemporaryTestPopup)
         {
             HandleTemporaryTestPopupInput();
@@ -154,9 +164,11 @@ public sealed class LevelManager : MonoBehaviour
         EnsureWaveDefinitions();
         pauseMenuOpen = false;
         ClearTemporaryTestPopup();
+        ClearRewardSelection();
         ResolveReferences();
         PreparePlayer();
         ResolvePlayerReference();
+        RewardSelectionSession.ApplyRunBonuses(targetPlayer);
 
         if (targetPlayer == null)
         {
@@ -181,7 +193,7 @@ public sealed class LevelManager : MonoBehaviour
 
         if (HasNextWave)
         {
-            OpenTemporaryTestPopup("波次完成", temporaryTestSuccessMessage, PopupAction.NextWave, CurrentWaveNumber, NextWaveNumber);
+            OpenRewardSelection(CurrentWaveNumber, NextWaveNumber);
             return;
         }
 
@@ -208,6 +220,8 @@ public sealed class LevelManager : MonoBehaviour
         pendingStartWaveIndex = NoPendingWaveIndex;
         pauseMenuOpen = false;
         ClearTemporaryTestPopup();
+        ClearRewardSelection();
+        RewardSelectionSession.ClearRewards();
         ResolveReferences();
         currentWaveIndex = 0;
         remainingTimeSeconds = GetCurrentWaveDuration();
@@ -392,6 +406,7 @@ public sealed class LevelManager : MonoBehaviour
 
     private void OpenTemporaryTestPopup(string title, string message, PopupAction action, int currentWaveNumber, int nextWaveNumber)
     {
+        ClearRewardSelection();
         showTemporaryTestPopup = true;
         temporaryTestPopupTitle = title;
         temporaryTestPopupMessage = message;
@@ -412,6 +427,55 @@ public sealed class LevelManager : MonoBehaviour
         popupNextWaveNumber = 0;
     }
 
+    public bool TryGetRewardOffer(int index, out RewardType rewardType)
+    {
+        if (index < 0 || index >= activeRewardOffers.Count)
+        {
+            rewardType = RewardType.MaxHealth;
+            return false;
+        }
+
+        rewardType = activeRewardOffers[index];
+        return true;
+    }
+
+    public void SelectReward(RewardType rewardType)
+    {
+        if (!showRewardSelection || !activeRewardOffers.Contains(rewardType))
+        {
+            return;
+        }
+
+        RewardSelectionSession.AddReward(rewardType);
+        ClearRewardSelection();
+        AdvanceToNextWave();
+    }
+
+    private void OpenRewardSelection(int currentWaveNumber, int nextWaveNumber)
+    {
+        ClearTemporaryTestPopup();
+        activeRewardOffers.Clear();
+        activeRewardOffers.AddRange(RewardSelectionSession.BuildRewardOffers(targetPlayer, 3));
+
+        if (activeRewardOffers.Count == 0)
+        {
+            OpenTemporaryTestPopup("波次完成", temporaryTestSuccessMessage, PopupAction.NextWave, currentWaveNumber, nextWaveNumber);
+            return;
+        }
+
+        showRewardSelection = true;
+        popupCurrentWaveNumber = currentWaveNumber;
+        popupNextWaveNumber = nextWaveNumber;
+        pauseMenuOpen = false;
+        RefreshTimeScale();
+    }
+
+    private void ClearRewardSelection()
+    {
+        showRewardSelection = false;
+        activeRewardOffers.Clear();
+    }
+
     [ContextMenu("Restart Current Test Level")]
     public void RestartCurrentTestLevel()
     {
@@ -420,6 +484,7 @@ public sealed class LevelManager : MonoBehaviour
 
     public void RestartLevelFromFirstWave()
     {
+        RewardSelectionSession.ClearRewards();
         RestartSceneAtWave(0);
     }
 
@@ -428,6 +493,7 @@ public sealed class LevelManager : MonoBehaviour
         pendingStartWaveIndex = Mathf.Max(0, waveIndex);
         pauseMenuOpen = false;
         ClearTemporaryTestPopup();
+        ClearRewardSelection();
         RefreshTimeScale();
 
         Scene activeScene = SceneManager.GetActiveScene();
@@ -455,8 +521,10 @@ public sealed class LevelManager : MonoBehaviour
 
         pendingStartWaveIndex = NoPendingWaveIndex;
         WeaponSelectionSession.ClearSelection();
+        RewardSelectionSession.ClearRewards();
         pauseMenuOpen = false;
         ClearTemporaryTestPopup();
+        ClearRewardSelection();
         Time.timeScale = 1f;
         SceneManager.LoadScene(startMenuSceneName);
     }
@@ -479,6 +547,8 @@ public sealed class LevelManager : MonoBehaviour
         remainingTimeSeconds = GetCurrentWaveDuration();
         currentState = LevelState.Running;
         pauseMenuOpen = false;
+        ClearTemporaryTestPopup();
+        ClearRewardSelection();
 
         if (enemySpawner != null)
         {
@@ -549,7 +619,7 @@ public sealed class LevelManager : MonoBehaviour
 
     private void RefreshTimeScale()
     {
-        bool shouldPauseForPopup = pauseTimeScaleOnWaveEnd && showTemporaryTestPopup;
+        bool shouldPauseForPopup = pauseTimeScaleOnWaveEnd && (showTemporaryTestPopup || showRewardSelection);
         Time.timeScale = shouldPauseForPopup || pauseMenuOpen ? 0f : 1f;
     }
 

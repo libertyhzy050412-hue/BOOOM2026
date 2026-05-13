@@ -149,12 +149,13 @@ public sealed class BowWeapon : WeaponBase
         Vector2 fireDirection = lastAimDirection.sqrMagnitude > 0.0001f ? lastAimDirection.normalized : Vector2.right;
         Transform spawnReference = arrowSpawnPoint != null ? arrowSpawnPoint : transform;
         Vector3 spawnPosition = spawnReference.position;
+        float attackPowerMultiplier = Owner != null ? Mathf.Max(0f, Owner.AttackPowerPercent) * 0.01f : 1f;
         BowArrowProjectile arrowInstance = Instantiate(arrowPrefab, spawnPosition, Quaternion.identity, EnsureProjectileRoot());
         arrowInstance.Launch(
             Owner,
             fireDirection,
             Mathf.Lerp(minArrowSpeed, maxArrowSpeed, chargeNormalized),
-            Mathf.Lerp(minArrowDamage, maxArrowDamage, chargeNormalized),
+            Mathf.Lerp(minArrowDamage, maxArrowDamage, chargeNormalized) * attackPowerMultiplier,
             arrowLifetime,
             Mathf.Lerp(minRevealRadius, maxRevealRadius, chargeNormalized),
             revealHardness,

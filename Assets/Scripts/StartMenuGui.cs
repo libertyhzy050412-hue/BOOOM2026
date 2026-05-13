@@ -24,6 +24,7 @@ public sealed class StartMenuGui : MonoBehaviour
     private void Awake()
     {
         WeaponSelectionSession.ClearSelection();
+        RewardSelectionSession.ClearRewards();
     }
 
     private void OnGUI()

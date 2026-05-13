@@ -62,6 +62,7 @@ public sealed class GameInitializer : MonoBehaviour
         }
 
         EnsurePlayerWeaponLoadout(player);
+        RewardSelectionSession.ApplyRunBonuses(player);
 
         return player;
     }

@@ -14,6 +14,10 @@ public sealed class Player : MonoBehaviour, IDamageable
 
     private UnitDamageFlash damageFlash;
     private float nextDamageAllowedTime;
+    private bool rewardBaseStatsCaptured;
+    private float rewardBaseMoveSpeed;
+    private float rewardBaseMaxHealth;
+    private float rewardBaseAttackPowerPercent;
 
     public float MoveSpeed => moveSpeed;
     public float MaxHealth => maxHealth;
@@ -28,6 +32,7 @@ public sealed class Player : MonoBehaviour, IDamageable
 
     private void Awake()
     {
+        CacheRewardBaseStatsIfNeeded();
         currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
         nextDamageAllowedTime = 0f;
         damageFlash = GetComponent<UnitDamageFlash>();
@@ -35,6 +40,19 @@ public sealed class Player : MonoBehaviour, IDamageable
         {
             damageFlash = gameObject.AddComponent<UnitDamageFlash>();
         }
+    }
+
+    public void ApplyRuntimeRewardModifiers(float moveSpeedBonus, float maxHealthBonus, float attackPowerPercentBonus)
+    {
+        CacheRewardBaseStatsIfNeeded();
+
+        float previousMaxHealth = Mathf.Max(maxHealth, 0f);
+        float healthRatio = previousMaxHealth > 0f ? Mathf.Clamp01(currentHealth / previousMaxHealth) : 1f;
+
+        moveSpeed = Mathf.Max(0f, rewardBaseMoveSpeed + moveSpeedBonus);
+        maxHealth = Mathf.Max(0f, rewardBaseMaxHealth + maxHealthBonus);
+        attackPowerPercent = Mathf.Max(0f, rewardBaseAttackPowerPercent + attackPowerPercentBonus);
+        currentHealth = Mathf.Clamp(maxHealth * healthRatio, 0f, maxHealth);
     }
 
     public void SetMoveSpeed(float value)
@@ -102,5 +120,18 @@ public sealed class Player : MonoBehaviour, IDamageable
         physicalAttack = Mathf.Max(0f, physicalAttack);
         magicalAttack = Mathf.Max(0f, magicalAttack);
         dodgePercent = Mathf.Clamp(dodgePercent, 0f, 100f);
+    }
+
+    private void CacheRewardBaseStatsIfNeeded()
+    {
+        if (rewardBaseStatsCaptured)
+        {
+            return;
+        }
+
+        rewardBaseMoveSpeed = moveSpeed;
+        rewardBaseMaxHealth = maxHealth;
+        rewardBaseAttackPowerPercent = attackPowerPercent;
+        rewardBaseStatsCaptured = true;
     }
 }

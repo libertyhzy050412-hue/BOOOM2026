@@ -67,6 +67,9 @@ public sealed class BrushWeapon : WeaponBase
     private float currentInkAmount;
     private float inkRecoveryDelayTimer;
     private bool inkRecoveryActive;
+    private bool rewardBaseStatsCaptured;
+    private float rewardBaseMaxInkAmount;
+    private float rewardBaseInkRecoveryPerSecond;
 
     public float CurrentInkAmount => currentInkAmount;
     public float MaxInkAmount => maxInkAmount;
@@ -76,6 +79,7 @@ public sealed class BrushWeapon : WeaponBase
     protected override void Awake()
     {
         base.Awake();
+        CacheRewardBaseStatsIfNeeded();
         currentInkAmount = maxInkAmount;
         inkRecoveryDelayTimer = inkRecoveryDelay;
         inkRecoveryActive = false;
@@ -246,6 +250,18 @@ public sealed class BrushWeapon : WeaponBase
         }
     }
 
+    private void CacheRewardBaseStatsIfNeeded()
+    {
+        if (rewardBaseStatsCaptured)
+        {
+            return;
+        }
+
+        rewardBaseMaxInkAmount = maxInkAmount;
+        rewardBaseInkRecoveryPerSecond = inkRecoveryPerSecond;
+        rewardBaseStatsCaptured = true;
+    }
+
     public void SetBrushStrength(float normalizedStrength)
     {
         brushStrength = Mathf.Clamp01(normalizedStrength);
@@ -253,6 +269,18 @@ public sealed class BrushWeapon : WeaponBase
         {
             UpdateBrushVisualScale(EvaluateEffectiveMaxRadius());
         }
+    }
+
+    public void ApplyRuntimeRewardModifiers(float maxInkBonus, float inkRecoveryBonus)
+    {
+        CacheRewardBaseStatsIfNeeded();
+
+        float previousMaxInkAmount = Mathf.Max(maxInkAmount, MinimumInkEpsilon);
+        float inkRatio = Mathf.Clamp01(currentInkAmount / previousMaxInkAmount);
+
+        maxInkAmount = Mathf.Max(0.01f, rewardBaseMaxInkAmount + maxInkBonus);
+        inkRecoveryPerSecond = Mathf.Max(0f, rewardBaseInkRecoveryPerSecond + inkRecoveryBonus);
+        currentInkAmount = Mathf.Clamp(maxInkAmount * inkRatio, 0f, maxInkAmount);
     }
 
     [ContextMenu("Clear Reveal Mask")]

@@ -155,6 +155,27 @@ public static class SimpleGuiTheme
         GUI.color = previousColor;
     }
 
+    public static void DrawSprite(Sprite sprite, Rect rect, Color tint)
+    {
+        if (sprite == null || sprite.texture == null)
+        {
+            return;
+        }
+
+        Texture2D texture = sprite.texture;
+        Rect textureRect = sprite.textureRect;
+        Rect uv = new Rect(
+            textureRect.x / texture.width,
+            textureRect.y / texture.height,
+            textureRect.width / texture.width,
+            textureRect.height / texture.height);
+
+        Color previousColor = GUI.color;
+        GUI.color = tint;
+        GUI.DrawTextureWithTexCoords(rect, texture, uv, true);
+        GUI.color = previousColor;
+    }
+
     private static void DrawOutline(Rect rect, Color color, float thickness)
     {
         DrawSolidRect(new Rect(rect.x, rect.y, rect.width, thickness), color);
