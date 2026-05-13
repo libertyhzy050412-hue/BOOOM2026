@@ -39,6 +39,11 @@ public sealed class WeaponSelectionMenuGui : MonoBehaviour
     private GUIStyle backButtonStyle;
     private Vector2 scrollPosition;
 
+    private void OnEnable()
+    {
+        AudioManager.PlayMenuMusic();
+    }
+
     private void OnGUI()
     {
         EnsureStyles();
@@ -69,7 +74,7 @@ public sealed class WeaponSelectionMenuGui : MonoBehaviour
         if (showBackButton)
         {
             Rect backRect = new Rect(contentRect.x, contentRect.yMax - footerHeight, Mathf.Min(contentRect.width, SimpleGuiTheme.Scale(230f)), footerHeight);
-            if (GUI.Button(backRect, backButtonText, backButtonStyle))
+            if (GuiAudioButton.Button("WeaponSelection/Back", backRect, backButtonText, backButtonStyle))
             {
                 ReturnToStartScene();
             }
@@ -141,7 +146,7 @@ public sealed class WeaponSelectionMenuGui : MonoBehaviour
 
         bool previousEnabled = GUI.enabled;
         GUI.enabled = isSelectable;
-        if (GUI.Button(buttonRect, isSelectable ? $"选择 {weaponOption.displayName}" : "尚未配置", isSelectable ? optionButtonStyle : disabledOptionButtonStyle))
+        if (GuiAudioButton.Button($"WeaponSelection/Option/{weaponOption.id}", buttonRect, isSelectable ? $"选择 {weaponOption.displayName}" : "尚未配置", isSelectable ? optionButtonStyle : disabledOptionButtonStyle, isSelectable))
         {
             SelectWeapon(weaponOption);
         }

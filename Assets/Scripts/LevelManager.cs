@@ -26,7 +26,9 @@ public sealed class LevelManager : MonoBehaviour
         None = 0,
         NextWave = 1,
         RestartLevel = 2,
-        ReturnToStartScene = 3
+        ReturnToStartScene = 3,
+        LoadVictoryScene = 4,
+        LoadFailureScene = 5
     }
 
     public enum LevelState
@@ -45,6 +47,12 @@ public sealed class LevelManager : MonoBehaviour
     [SerializeField] private bool initializeGameOnStart = true;
     [SerializeField] private string startMenuSceneName = "StartScene";
 
+    [Header("Result Scene Routing")]
+    [SerializeField, InspectorName("胜利后跳转场景"), Tooltip("最后一波胜利后按确认键要进入的场景名称。需要已加入 Build Profiles。")]
+    private string victoryResultSceneName = "StartScene";
+    [SerializeField, InspectorName("失败后跳转场景"), Tooltip("玩家失败后按确认键要进入的场景名称。需要已加入 Build Profiles。")]
+    private string failureResultSceneName = "StartScene";
+
     [Header("Wave Settings")]
     [SerializeField] private List<WaveDefinition> waveDefinitions = CreateDefaultWaveDefinitions();
     [SerializeField] private bool resetSpawnerStateOnStart = true;
@@ -62,8 +70,8 @@ public sealed class LevelManager : MonoBehaviour
     [SerializeField] private bool allowSpaceToRestartCurrentTestLevel = true;
     [SerializeField] private KeyCode continueKey = KeyCode.Space;
     [SerializeField, TextArea(2, 4)] private string temporaryTestSuccessMessage = "当前波次结束。\n按空格进入下一波。";
-    [SerializeField, TextArea(2, 4)] private string finalWaveSuccessMessage = "全部波次完成。\n按空格返回开始界面。";
-    [SerializeField, TextArea(2, 4)] private string temporaryTestFailureMessage = "游戏失败。\n按空格重试。";
+    [SerializeField, TextArea(2, 4)] private string finalWaveSuccessMessage = "全部波次完成。\n按空格进入胜利结算场景。";
+    [SerializeField, TextArea(2, 4)] private string temporaryTestFailureMessage = "游戏失败。\n按空格进入失败结算场景。";
 
     private LevelState currentState = LevelState.Idle;
     private static int pendingStartWaveIndex = NoPendingWaveIndex;
@@ -111,6 +119,11 @@ public sealed class LevelManager : MonoBehaviour
         ClearTemporaryTestPopup();
         ClearRewardSelection();
         RefreshTimeScale();
+    }
+
+    private void OnEnable()
+    {
+        AudioManager.PlayBattleMusic();
     }
 
     private void Start()
@@ -197,7 +210,7 @@ public sealed class LevelManager : MonoBehaviour
             return;
         }
 
-        OpenTemporaryTestPopup("全部波次完成", finalWaveSuccessMessage, PopupAction.ReturnToStartScene, CurrentWaveNumber, 0);
+        OpenTemporaryTestPopup("全部波次完成", finalWaveSuccessMessage, PopupAction.LoadVictoryScene, CurrentWaveNumber, 0);
     }
 
     [ContextMenu("Fail Level")]
@@ -210,7 +223,7 @@ public sealed class LevelManager : MonoBehaviour
 
         currentState = LevelState.Failed;
         HandleLevelEnded(stopEnemySpawnerOnFailure, disableRemainingEnemiesOnFailure);
-        OpenTemporaryTestPopup("游戏失败", temporaryTestFailureMessage, PopupAction.RestartLevel, CurrentWaveNumber, 0);
+        OpenTemporaryTestPopup("游戏失败", temporaryTestFailureMessage, PopupAction.LoadFailureScene, CurrentWaveNumber, 0);
     }
 
     [ContextMenu("Reset Level State")]
@@ -351,6 +364,12 @@ public sealed class LevelManager : MonoBehaviour
                 break;
             case PopupAction.ReturnToStartScene:
                 ReturnToStartMenu();
+                break;
+            case PopupAction.LoadVictoryScene:
+                LoadVictoryResultScene();
+                break;
+            case PopupAction.LoadFailureScene:
+                LoadFailureResultScene();
                 break;
         }
     }
@@ -605,9 +624,55 @@ public sealed class LevelManager : MonoBehaviour
                 return "重新开始";
             case PopupAction.ReturnToStartScene:
                 return "返回开始界面";
+            case PopupAction.LoadVictoryScene:
+                return "进入胜利场景";
+            case PopupAction.LoadFailureScene:
+                return "进入失败场景";
             default:
                 return "继续";
         }
+    }
+
+    private void LoadVictoryResultScene()
+    {
+        if (!TryLoadConfiguredResultScene(victoryResultSceneName, "胜利"))
+        {
+            ReturnToStartMenu();
+        }
+    }
+
+    private void LoadFailureResultScene()
+    {
+        if (!TryLoadConfiguredResultScene(failureResultSceneName, "失败"))
+        {
+            ReturnToStartMenu();
+        }
+    }
+
+    private bool TryLoadConfiguredResultScene(string sceneName, string scenePurpose)
+    {
+        if (!CanLoadScene(sceneName))
+        {
+            if (!string.IsNullOrWhiteSpace(sceneName))
+            {
+                Debug.LogWarning($"[LevelManager] {scenePurpose}结果场景 '{sceneName}' 当前不可加载，请把它加入 Build Profiles。已回退到开始界面。", this);
+            }
+
+            return false;
+        }
+
+        pendingStartWaveIndex = NoPendingWaveIndex;
+        pauseMenuOpen = false;
+        ClearTemporaryTestPopup();
+        ClearRewardSelection();
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(sceneName);
+        return true;
+    }
+
+    private static bool CanLoadScene(string sceneName)
+    {
+        return !string.IsNullOrWhiteSpace(sceneName) && Application.CanStreamedLevelBeLoaded(sceneName);
     }
 
     private static int ConsumePendingStartWaveIndex()

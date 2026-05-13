@@ -150,6 +150,7 @@ public sealed class BowWeapon : WeaponBase
         Transform spawnReference = arrowSpawnPoint != null ? arrowSpawnPoint : transform;
         Vector3 spawnPosition = spawnReference.position;
         float attackPowerMultiplier = Owner != null ? Mathf.Max(0f, Owner.AttackPowerPercent) * 0.01f : 1f;
+        AudioManager.PlayBowShoot();
         BowArrowProjectile arrowInstance = Instantiate(arrowPrefab, spawnPosition, Quaternion.identity, EnsureProjectileRoot());
         arrowInstance.Launch(
             Owner,

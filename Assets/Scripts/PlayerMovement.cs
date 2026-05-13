@@ -56,11 +56,13 @@ public sealed class PlayerMovement : MonoBehaviour
         moveInput = ReadMoveInput();
         bool isMoving = MoveTransform(Time.deltaTime);
         ApplyMoveAnimation(isMoving);
+        AudioManager.SetFootstepLoopActive(isMoving && player != null && player.IsAlive);
     }
 
     private void OnDisable()
     {
         ApplyMoveAnimation(false);
+        AudioManager.SetFootstepLoopActive(false);
     }
 
     private Vector2 ReadMoveInput()

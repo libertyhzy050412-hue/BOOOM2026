@@ -107,6 +107,7 @@ public sealed class Player : MonoBehaviour, IDamageable
         currentHealth = Mathf.Max(currentHealth - amount, 0f);
         nextDamageAllowedTime = currentTime + damageCooldownSeconds;
         damageFlash?.PlayFlash();
+        AudioManager.PlayPlayerHurt();
         return true;
     }
 

@@ -27,6 +27,11 @@ public sealed class StartMenuGui : MonoBehaviour
         RewardSelectionSession.ClearRewards();
     }
 
+    private void OnEnable()
+    {
+        AudioManager.PlayMenuMusic();
+    }
+
     private void OnGUI()
     {
         EnsureStyles();
@@ -55,14 +60,14 @@ public sealed class StartMenuGui : MonoBehaviour
         GUILayout.FlexibleSpace();
         GUILayout.BeginVertical();
 
-        if (GUILayout.Button(startButtonText, primaryButtonStyle, GUILayout.Width(actionWidth), GUILayout.Height(actionHeight)))
+        if (GuiAudioButton.LayoutButton("StartMenu/Start", startButtonText, primaryButtonStyle, GUILayout.Width(actionWidth), GUILayout.Height(actionHeight)))
         {
             StartGame();
         }
 
         GUILayout.Space(SimpleGuiTheme.Scale(16f));
 
-        if (GUILayout.Button(quitButtonText, secondaryButtonStyle, GUILayout.Width(actionWidth), GUILayout.Height(actionHeight)))
+        if (GuiAudioButton.LayoutButton("StartMenu/Quit", quitButtonText, secondaryButtonStyle, GUILayout.Width(actionWidth), GUILayout.Height(actionHeight)))
         {
             QuitGame();
         }

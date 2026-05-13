@@ -7,6 +7,11 @@ public sealed class BowArrowProjectile : MonoBehaviour
     [SerializeField] private Collider2D cachedCollider;
     [SerializeField] private SpriteRenderer[] projectileRenderers;
     [SerializeField] private bool destroyOnBlockingHit = true;
+    [Header("Reveal Trail")]
+    [SerializeField] private bool revealTrailWhileFlying = true;
+    [SerializeField, Min(0.02f)] private float trailRevealRadius = 0.24f;
+    [SerializeField, Range(0.05f, 0.95f)] private float trailRevealHardness = 0.52f;
+    [SerializeField, Range(0.1f, 0.9f)] private float trailRevealSpacingRatio = 0.3f;
     [SerializeField] private bool rotateAlongVelocity = true;
     [SerializeField] private bool forceVisibleSorting = true;
     [SerializeField] private bool forceNoMaskInteraction = true;
@@ -88,6 +93,7 @@ public sealed class BowArrowProjectile : MonoBehaviour
                 return;
             }
 
+            RevealTrailSegment(startPosition, endPosition);
             transform.position = endPosition;
             UpdateVisualRotation(moveDirection);
         }
@@ -107,6 +113,7 @@ public sealed class BowArrowProjectile : MonoBehaviour
             return;
         }
 
+        RevealTrailSegment(startPosition, nextPosition);
         cachedRigidbody.MovePosition(nextPosition);
         UpdateVisualRotation(moveDirection);
     }
@@ -187,6 +194,7 @@ public sealed class BowArrowProjectile : MonoBehaviour
                 damageable.ApplyDamage(damageAmount, DamageTeam.Player, this);
             }
 
+            AudioManager.PlayBowImpact();
             RevealImpactArea(impactPoint);
             FinishImpact();
             return;
@@ -199,6 +207,7 @@ public sealed class BowArrowProjectile : MonoBehaviour
 
         if (destroyOnBlockingHit)
         {
+            AudioManager.PlayBowImpact();
             FinishImpact();
         }
     }
@@ -253,6 +262,7 @@ public sealed class BowArrowProjectile : MonoBehaviour
                 impactPoint = hit.centroid;
             }
 
+            RevealTrailSegment(startPosition, impactPoint);
             ResolveImpact(hit.collider, impactPoint);
             return impactResolved;
         }
@@ -327,6 +337,35 @@ public sealed class BowArrowProjectile : MonoBehaviour
 
     private void RevealImpactArea(Vector2 impactPoint)
     {
+        if (!EnsureRevealMaskController())
+        {
+            return;
+        }
+
+        revealMaskController.RevealStamp(impactPoint, revealRadius, revealHardness);
+        revealMaskController.Flush();
+    }
+
+    private void RevealTrailSegment(Vector2 from, Vector2 to)
+    {
+        if (!revealTrailWhileFlying || Vector2.Distance(from, to) <= 0.0001f)
+        {
+            return;
+        }
+
+        if (!EnsureRevealMaskController())
+        {
+            return;
+        }
+
+        if (revealMaskController.RevealStroke(from, to, trailRevealRadius, trailRevealRadius, trailRevealHardness, trailRevealSpacingRatio))
+        {
+            revealMaskController.Flush();
+        }
+    }
+
+    private bool EnsureRevealMaskController()
+    {
         revealMaskController = WorldRevealMaskController.GetOrCreate(
             mapRoot,
             mapRootName,
@@ -334,13 +373,7 @@ public sealed class BowArrowProjectile : MonoBehaviour
             maskPixelsPerUnit,
             maxMaskTextureSize);
 
-        if (revealMaskController == null)
-        {
-            return;
-        }
-
-        revealMaskController.RevealStamp(impactPoint, revealRadius, revealHardness);
-        revealMaskController.Flush();
+        return revealMaskController != null;
     }
 
     private void FinishImpact()
@@ -407,6 +440,9 @@ public sealed class BowArrowProjectile : MonoBehaviour
             cachedCollider = GetComponent<Collider2D>();
         }
 
+        trailRevealRadius = Mathf.Max(0.02f, trailRevealRadius);
+        trailRevealHardness = Mathf.Clamp(trailRevealHardness, 0.05f, 0.95f);
+        trailRevealSpacingRatio = Mathf.Clamp(trailRevealSpacingRatio, 0.1f, 0.9f);
         ResolveProjectileRenderers();
     }
 }

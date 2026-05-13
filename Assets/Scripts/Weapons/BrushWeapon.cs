@@ -102,6 +102,7 @@ public sealed class BrushWeapon : WeaponBase
 
         if (!TryGetPointerWorldPosition(out Vector3 pointerPosition))
         {
+            AudioManager.SetBrushAttackLoopActive(false);
             UpdateRangeIndicatorVisibility(false, false);
             LogMissingCameraOnce();
             return;
@@ -115,6 +116,7 @@ public sealed class BrushWeapon : WeaponBase
 
         if (!useHeld)
         {
+            AudioManager.SetBrushAttackLoopActive(false);
             UpdateBrushVisualScale(visualRadius);
             UpdateRangeIndicatorVisibility(false, true);
             ResetStrokeState();
@@ -124,6 +126,7 @@ public sealed class BrushWeapon : WeaponBase
 
         if (!CanPaintWithInk())
         {
+            AudioManager.SetBrushAttackLoopActive(false);
             BreakStrokeContinuity(pointerPosition, visualRadius);
             UpdateBrushVisualScale(visualRadius);
             UpdateRangeIndicatorVisibility(true, true);
@@ -195,6 +198,7 @@ public sealed class BrushWeapon : WeaponBase
 
     protected override void OnWeaponDisabled()
     {
+        AudioManager.SetBrushAttackLoopActive(false);
         ResetStrokeState();
         summonSpawnTimer = 0f;
         UpdateRangeIndicatorVisibility(false, false);
@@ -294,6 +298,7 @@ public sealed class BrushWeapon : WeaponBase
 
     private void StartStroke(Vector3 pointerPosition)
     {
+        AudioManager.SetBrushAttackLoopActive(true);
         strokeActive = true;
         strokeElapsedTime = 0f;
         smoothedCursorSpeed = 0f;
@@ -309,6 +314,7 @@ public sealed class BrushWeapon : WeaponBase
 
     private void ResetStrokeState()
     {
+        AudioManager.SetBrushAttackLoopActive(false);
         strokeActive = false;
         strokeElapsedTime = 0f;
         smoothedCursorSpeed = 0f;
@@ -453,6 +459,7 @@ public sealed class BrushWeapon : WeaponBase
 
     private void BreakStrokeContinuity(Vector3 pointerPosition, float visualRadius)
     {
+        AudioManager.SetBrushAttackLoopActive(false);
         strokeActive = false;
         strokeElapsedTime = 0f;
         smoothedCursorSpeed = 0f;

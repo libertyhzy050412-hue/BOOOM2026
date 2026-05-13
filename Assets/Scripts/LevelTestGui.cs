@@ -101,7 +101,7 @@ public sealed class LevelTestGui : MonoBehaviour
 
         GUILayout.BeginHorizontal();
         GUILayout.FlexibleSpace();
-        if (GUILayout.Button(levelManager.PopupPrimaryActionLabel, popupButtonStyle, GUILayout.Width(buttonWidth), GUILayout.Height(buttonHeight)))
+        if (GuiAudioButton.LayoutButton("LevelPopup/Primary", levelManager.PopupPrimaryActionLabel, popupButtonStyle, GUILayout.Width(buttonWidth), GUILayout.Height(buttonHeight)))
         {
             levelManager.ExecutePopupPrimaryAction();
         }
@@ -199,7 +199,7 @@ public sealed class LevelTestGui : MonoBehaviour
         GUI.Label(stackRect, RewardSelectionSession.GetStackSummary(rewardType), rewardStackStyle);
         GUI.Label(bodyRect, RewardSelectionSession.GetDescription(rewardType), rewardCardBodyStyle);
 
-        if (GUI.Button(buttonRect, "选择这个奖励", rewardButtonStyle))
+        if (GuiAudioButton.Button($"Reward/{rewardType}", buttonRect, "选择这个奖励", rewardButtonStyle))
         {
             levelManager.SelectReward(rewardType);
         }
