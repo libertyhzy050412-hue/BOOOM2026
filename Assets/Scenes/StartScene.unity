@@ -341,13 +341,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AudioManager
   startMenuMusic: {fileID: 8300000, guid: 1e930c667fef9694998b186736ee036c, type: 3}
   battleMusic: {fileID: 8300000, guid: 38a5edb570fc1ba4db8da169c8375802, type: 3}
-  uiHoverSound: {fileID: 0}
-  uiClickSound: {fileID: 0}
+  uiHoverSound: {fileID: 8300000, guid: f879a62872107144f94989b065f22ac7, type: 3}
+  uiClickSound: {fileID: 8300000, guid: 28aa1c9c8081a334197b5e504b9241b3, type: 3}
   playerFootstepLoop: {fileID: 8300000, guid: 9bb741d4701b23b44898966e10965ec3, type: 3}
   brushAttackLoop: {fileID: 8300000, guid: 3843aa01e439126499abe35c522beacf, type: 3}
   bowShootSound: {fileID: 8300000, guid: 65f57073d15f03a4d82bee5021fa7810, type: 3}
   bowImpactSound: {fileID: 8300000, guid: bca042a943f864d41b1f7954b4372185, type: 3}
-  playerHurtSound: {fileID: 0}
+  playerHurtSound: {fileID: 8300000, guid: c8e37211642db4642a5f0ae43ee4d41f, type: 3}
   musicVolume: 0.8
   uiSoundVolume: 1
   combatSoundVolume: 1
