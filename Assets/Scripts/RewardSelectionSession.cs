@@ -1,0 +1,250 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+public enum RewardType
+{
+    MaxHealth = 0,
+    AttackPower = 1,
+    BrushInkCapacity = 2,
+    BrushInkRecovery = 3,
+    MoveSpeed = 4
+}
+
+public static class RewardSelectionSession
+{
+    private sealed class RewardDefinition
+    {
+        public RewardDefinition(RewardType type, string displayName, string descriptionFormat, string iconResourcePath, bool requiresBrushWeapon)
+        {
+            Type = type;
+            DisplayName = displayName;
+            DescriptionFormat = descriptionFormat;
+            IconResourcePath = iconResourcePath;
+            RequiresBrushWeapon = requiresBrushWeapon;
+        }
+
+        public RewardType Type { get; }
+        public string DisplayName { get; }
+        public string DescriptionFormat { get; }
+        public string IconResourcePath { get; }
+        public bool RequiresBrushWeapon { get; }
+    }
+
+    private const float MaxHealthBonusPerStack = 20f;
+    private const float AttackPowerPercentBonusPerStack = 20f;
+    private const float BrushInkCapacityBonusPerStack = 4f;
+    private const float BrushInkRecoveryBonusPerStack = 1.5f;
+    private const float MoveSpeedBonusPerStack = 0.75f;
+
+    private static readonly RewardType[] AllRewardTypes =
+    {
+        RewardType.MaxHealth,
+        RewardType.AttackPower,
+        RewardType.BrushInkCapacity,
+        RewardType.BrushInkRecovery,
+        RewardType.MoveSpeed
+    };
+
+    private static readonly Dictionary<RewardType, RewardDefinition> RewardDefinitions = new Dictionary<RewardType, RewardDefinition>
+    {
+        { RewardType.MaxHealth, new RewardDefinition(RewardType.MaxHealth, "小熊", "+{0} 最大生命值", "商店道具/生命值-小熊", false) },
+        { RewardType.AttackPower, new RewardDefinition(RewardType.AttackPower, "魔爪", "+{0}% 攻击力", "商店道具/攻击力·-魔爪", false) },
+        { RewardType.BrushInkCapacity, new RewardDefinition(RewardType.BrushInkCapacity, "颜料桶", "+{0} 颜料容量上限", "商店道具/脑容量最大值-桶", true) },
+        { RewardType.BrushInkRecovery, new RewardDefinition(RewardType.BrushInkRecovery, "枕头", "+{0} 颜料恢复速度", "商店道具/脑容量恢复速度-枕头", true) },
+        { RewardType.MoveSpeed, new RewardDefinition(RewardType.MoveSpeed, "哥特风服饰", "+{0} 移动速度", "商店道具/移动速度-裙子", false) }
+    };
+
+    private static readonly Dictionary<RewardType, int> RewardStacks = new Dictionary<RewardType, int>();
+    private static readonly Dictionary<RewardType, Sprite> IconCache = new Dictionary<RewardType, Sprite>();
+
+    public static int TotalSelectedRewardCount
+    {
+        get
+        {
+            int total = 0;
+            foreach (KeyValuePair<RewardType, int> pair in RewardStacks)
+            {
+                total += Mathf.Max(0, pair.Value);
+            }
+
+            return total;
+        }
+    }
+
+    public static void ClearRewards()
+    {
+        RewardStacks.Clear();
+    }
+
+    public static List<RewardType> BuildRewardOffers(Player player, int offerCount)
+    {
+        List<RewardType> candidates = new List<RewardType>(AllRewardTypes.Length);
+        bool hasBrushWeapon = player != null && player.GetComponentInChildren<BrushWeapon>(true) != null;
+
+        for (int index = 0; index < AllRewardTypes.Length; index++)
+        {
+            RewardType rewardType = AllRewardTypes[index];
+            RewardDefinition definition = GetDefinition(rewardType);
+            if (definition == null)
+            {
+                continue;
+            }
+
+            if (definition.RequiresBrushWeapon && !hasBrushWeapon)
+            {
+                continue;
+            }
+
+            candidates.Add(rewardType);
+        }
+
+        if (candidates.Count == 0)
+        {
+            return new List<RewardType>();
+        }
+
+        Shuffle(candidates, new System.Random(unchecked(Environment.TickCount ^ (TotalSelectedRewardCount << 8) ^ offerCount)));
+        int finalOfferCount = Mathf.Min(Mathf.Max(1, offerCount), candidates.Count);
+        if (candidates.Count > finalOfferCount)
+        {
+            candidates.RemoveRange(finalOfferCount, candidates.Count - finalOfferCount);
+        }
+
+        return candidates;
+    }
+
+    public static void AddReward(RewardType rewardType)
+    {
+        RewardStacks[rewardType] = GetStackCount(rewardType) + 1;
+    }
+
+    public static int GetStackCount(RewardType rewardType)
+    {
+        return RewardStacks.TryGetValue(rewardType, out int stackCount) ? Mathf.Max(0, stackCount) : 0;
+    }
+
+    public static string GetDisplayName(RewardType rewardType)
+    {
+        RewardDefinition definition = GetDefinition(rewardType);
+        return definition != null ? definition.DisplayName : rewardType.ToString();
+    }
+
+    public static string GetDescription(RewardType rewardType)
+    {
+        RewardDefinition definition = GetDefinition(rewardType);
+        return definition == null ? string.Empty : string.Format(definition.DescriptionFormat, FormatStepValue(rewardType));
+    }
+
+    public static string GetStackSummary(RewardType rewardType)
+    {
+        int stackCount = GetStackCount(rewardType);
+        return stackCount > 0 ? $"已拥有 x{stackCount}" : "未持有";
+    }
+
+    public static Sprite GetIcon(RewardType rewardType)
+    {
+        if (IconCache.TryGetValue(rewardType, out Sprite cachedIcon))
+        {
+            return cachedIcon;
+        }
+
+        RewardDefinition definition = GetDefinition(rewardType);
+        if (definition == null || string.IsNullOrWhiteSpace(definition.IconResourcePath))
+        {
+            return null;
+        }
+
+        Sprite loadedIcon = Resources.Load<Sprite>(definition.IconResourcePath);
+        IconCache[rewardType] = loadedIcon;
+        return loadedIcon;
+    }
+
+    public static void ApplyRunBonuses(Player player)
+    {
+        if (player == null)
+        {
+            return;
+        }
+
+        player.ApplyRuntimeRewardModifiers(GetTotalMoveSpeedBonus(), GetTotalMaxHealthBonus(), GetTotalAttackPowerPercentBonus());
+
+        BrushWeapon[] brushWeapons = player.GetComponentsInChildren<BrushWeapon>(true);
+        for (int index = 0; index < brushWeapons.Length; index++)
+        {
+            BrushWeapon brushWeapon = brushWeapons[index];
+            if (brushWeapon == null)
+            {
+                continue;
+            }
+
+            brushWeapon.ApplyRuntimeRewardModifiers(GetTotalBrushInkCapacityBonus(), GetTotalBrushInkRecoveryBonus());
+        }
+    }
+
+    private static RewardDefinition GetDefinition(RewardType rewardType)
+    {
+        RewardDefinitions.TryGetValue(rewardType, out RewardDefinition definition);
+        return definition;
+    }
+
+    private static string FormatStepValue(RewardType rewardType)
+    {
+        switch (rewardType)
+        {
+            case RewardType.MaxHealth:
+                return MaxHealthBonusPerStack.ToString("0");
+            case RewardType.AttackPower:
+                return AttackPowerPercentBonusPerStack.ToString("0");
+            case RewardType.BrushInkCapacity:
+                return BrushInkCapacityBonusPerStack.ToString("0.0");
+            case RewardType.BrushInkRecovery:
+                return BrushInkRecoveryBonusPerStack.ToString("0.0");
+            case RewardType.MoveSpeed:
+                return MoveSpeedBonusPerStack.ToString("0.0");
+            default:
+                return "0";
+        }
+    }
+
+    private static float GetTotalMaxHealthBonus()
+    {
+        return GetStackCount(RewardType.MaxHealth) * MaxHealthBonusPerStack;
+    }
+
+    private static float GetTotalAttackPowerPercentBonus()
+    {
+        return GetStackCount(RewardType.AttackPower) * AttackPowerPercentBonusPerStack;
+    }
+
+    private static float GetTotalBrushInkCapacityBonus()
+    {
+        return GetStackCount(RewardType.BrushInkCapacity) * BrushInkCapacityBonusPerStack;
+    }
+
+    private static float GetTotalBrushInkRecoveryBonus()
+    {
+        return GetStackCount(RewardType.BrushInkRecovery) * BrushInkRecoveryBonusPerStack;
+    }
+
+    private static float GetTotalMoveSpeedBonus()
+    {
+        return GetStackCount(RewardType.MoveSpeed) * MoveSpeedBonusPerStack;
+    }
+
+    private static void Shuffle<T>(IList<T> values, System.Random random)
+    {
+        if (values == null || random == null)
+        {
+            return;
+        }
+
+        for (int index = values.Count - 1; index > 0; index--)
+        {
+            int swapIndex = random.Next(index + 1);
+            T temp = values[index];
+            values[index] = values[swapIndex];
+            values[swapIndex] = temp;
+        }
+    }
+}

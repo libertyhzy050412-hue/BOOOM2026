@@ -35,6 +35,11 @@ public sealed class EnemySpawner : MonoBehaviour
     [SerializeField] private bool autoSpawn = true;
     [SerializeField] private List<EnemySpawnRule> spawnRules = new List<EnemySpawnRule>();
 
+    private float enemyHealthMultiplier = 1f;
+    private float enemyDamageMultiplier = 1f;
+    private float enemyMoveSpeedMultiplier = 1f;
+    private float spawnRateMultiplier = 1f;
+
     public bool AutoSpawn => autoSpawn;
 
     private void Awake()
@@ -68,8 +73,21 @@ public sealed class EnemySpawner : MonoBehaviour
         autoSpawn = enabled;
     }
 
+    public void SetWaveMultipliers(float healthMultiplier, float damageMultiplier, float moveSpeedMultiplier, float spawnMultiplier)
+    {
+        enemyHealthMultiplier = Mathf.Max(0.01f, healthMultiplier);
+        enemyDamageMultiplier = Mathf.Max(0.01f, damageMultiplier);
+        enemyMoveSpeedMultiplier = Mathf.Max(0.01f, moveSpeedMultiplier);
+        spawnRateMultiplier = Mathf.Max(0.01f, spawnMultiplier);
+    }
+
     [ContextMenu("Reset Spawn State")]
     public void ResetSpawnState()
+    {
+        ResetSpawnState(false);
+    }
+
+    public void ResetSpawnState(bool preserveAliveEnemies)
     {
         for (int index = 0; index < spawnRules.Count; index++)
         {
@@ -89,7 +107,11 @@ public sealed class EnemySpawner : MonoBehaviour
             }
             else
             {
-                rule.aliveEnemies.Clear();
+                CleanupRule(rule);
+                if (!preserveAliveEnemies)
+                {
+                    rule.aliveEnemies.Clear();
+                }
             }
         }
     }
@@ -108,7 +130,8 @@ public sealed class EnemySpawner : MonoBehaviour
 
         CleanupRule(rule);
         rule.elapsedTime += deltaTime;
-        if (rule.elapsedTime < rule.startDelay)
+        float effectiveStartDelay = GetEffectiveStartDelay(rule);
+        if (rule.elapsedTime < effectiveStartDelay)
         {
             return;
         }
@@ -116,20 +139,22 @@ public sealed class EnemySpawner : MonoBehaviour
         if (!rule.initialBurstHandled)
         {
             rule.initialBurstHandled = true;
-            if (rule.initialBurstCount > 0)
+            int initialBurstCount = GetEffectiveInitialBurstCount(rule);
+            if (initialBurstCount > 0)
             {
-                SpawnRule(rule, rule.initialBurstCount);
+                SpawnRule(rule, initialBurstCount);
             }
         }
 
         rule.spawnTimer += deltaTime;
-        if (rule.spawnTimer < rule.spawnInterval)
+        float effectiveSpawnInterval = GetEffectiveSpawnInterval(rule);
+        if (rule.spawnTimer < effectiveSpawnInterval)
         {
             return;
         }
 
-        int cycles = Mathf.FloorToInt(rule.spawnTimer / rule.spawnInterval);
-        rule.spawnTimer -= cycles * rule.spawnInterval;
+        int cycles = Mathf.FloorToInt(rule.spawnTimer / effectiveSpawnInterval);
+        rule.spawnTimer -= cycles * effectiveSpawnInterval;
         for (int cycleIndex = 0; cycleIndex < cycles; cycleIndex++)
         {
             if (!CanSpawnMore(rule))
@@ -137,7 +162,7 @@ public sealed class EnemySpawner : MonoBehaviour
                 return;
             }
 
-            SpawnRule(rule, rule.spawnCountPerCycle);
+            SpawnRule(rule, GetEffectiveSpawnCountPerCycle(rule));
         }
     }
 
@@ -163,6 +188,7 @@ public sealed class EnemySpawner : MonoBehaviour
 
             EnemyBase instance = Instantiate(rule.enemyPrefab, spawnPosition, Quaternion.identity, EnsureEnemyRoot());
             instance.SetTargetPlayer(targetPlayer);
+            ApplyRuntimeMultipliers(instance);
             rule.aliveEnemies.Add(instance);
             rule.totalSpawned++;
         }
@@ -170,23 +196,91 @@ public sealed class EnemySpawner : MonoBehaviour
 
     private bool CanSpawnMore(EnemySpawnRule rule)
     {
-        if (rule.maxTotalSpawnCount > 0 && rule.totalSpawned >= rule.maxTotalSpawnCount)
+        int effectiveMaxTotalSpawnCount = GetEffectiveMaxTotalSpawnCount(rule);
+        if (effectiveMaxTotalSpawnCount > 0 && rule.totalSpawned >= effectiveMaxTotalSpawnCount)
         {
             return false;
         }
 
-        return rule.maxAliveCount <= 0 || rule.aliveEnemies.Count < rule.maxAliveCount;
+        int effectiveMaxAliveCount = GetEffectiveMaxAliveCount(rule);
+        return effectiveMaxAliveCount <= 0 || rule.aliveEnemies.Count < effectiveMaxAliveCount;
     }
 
     private void CleanupRule(EnemySpawnRule rule)
     {
         for (int index = rule.aliveEnemies.Count - 1; index >= 0; index--)
         {
-            if (rule.aliveEnemies[index] == null)
+            EnemyBase enemy = rule.aliveEnemies[index];
+            if (enemy == null || !enemy.IsAlive || !enemy.EnemyEnabled)
             {
                 rule.aliveEnemies.RemoveAt(index);
             }
         }
+    }
+
+    private void ApplyRuntimeMultipliers(EnemyBase enemy)
+    {
+        if (enemy == null)
+        {
+            return;
+        }
+
+        float currentHealthRatio = enemy.MaxHealth <= 0f ? 1f : Mathf.Clamp01(enemy.CurrentHealth / enemy.MaxHealth);
+        enemy.SetMaxHealth(enemy.MaxHealth * enemyHealthMultiplier);
+        enemy.SetCurrentHealth(enemy.MaxHealth * currentHealthRatio);
+        enemy.SetMoveSpeed(enemy.MoveSpeed * enemyMoveSpeedMultiplier);
+
+        ContactDamageDealer[] damageDealers = enemy.GetComponentsInChildren<ContactDamageDealer>(true);
+        for (int index = 0; index < damageDealers.Length; index++)
+        {
+            ContactDamageDealer damageDealer = damageDealers[index];
+            if (damageDealer == null)
+            {
+                continue;
+            }
+
+            damageDealer.SetDamageAmount(damageDealer.DamageAmount * enemyDamageMultiplier);
+        }
+    }
+
+    private float GetEffectiveStartDelay(EnemySpawnRule rule)
+    {
+        return rule.startDelay / spawnRateMultiplier;
+    }
+
+    private int GetEffectiveInitialBurstCount(EnemySpawnRule rule)
+    {
+        return ScaleOptionalCount(rule.initialBurstCount);
+    }
+
+    private float GetEffectiveSpawnInterval(EnemySpawnRule rule)
+    {
+        return Mathf.Max(0.01f, rule.spawnInterval / spawnRateMultiplier);
+    }
+
+    private int GetEffectiveSpawnCountPerCycle(EnemySpawnRule rule)
+    {
+        return Mathf.Max(1, Mathf.CeilToInt(rule.spawnCountPerCycle * spawnRateMultiplier));
+    }
+
+    private int GetEffectiveMaxAliveCount(EnemySpawnRule rule)
+    {
+        return ScaleOptionalCount(rule.maxAliveCount);
+    }
+
+    private int GetEffectiveMaxTotalSpawnCount(EnemySpawnRule rule)
+    {
+        return ScaleOptionalCount(rule.maxTotalSpawnCount);
+    }
+
+    private int ScaleOptionalCount(int originalValue)
+    {
+        if (originalValue <= 0)
+        {
+            return 0;
+        }
+
+        return Mathf.Max(1, Mathf.CeilToInt(originalValue * spawnRateMultiplier));
     }
 
     private bool TryGetSpawnPosition(EnemySpawnRule rule, Vector3 referencePosition, Bounds mapBounds, out Vector3 spawnPosition)
@@ -316,6 +410,8 @@ public sealed class EnemySpawner : MonoBehaviour
 
     private void OnValidate()
     {
+        spawnRateMultiplier = Mathf.Max(0.01f, spawnRateMultiplier);
+
         if (spawnRules == null)
         {
             return;

@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4016453631583081231
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2721202290180669076}
+  - component: {fileID: 7036946373180897376}
+  - component: {fileID: 6575554475392951452}
+  m_Layer: 0
+  m_Name: BowWeapon
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2721202290180669076
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4016453631583081231}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 25.62869, y: -29.65902, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7036946373180897376
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4016453631583081231}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6534b76f6cd82b64fbdd4a454672bf8a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BowWeapon
+  owner: {fileID: 0}
+  inputCamera: {fileID: 0}
+  weaponEnabled: 1
+  arrowPrefab: {fileID: 1804553030364989890, guid: b0007776943697f4aacf0a15fc5507eb, type: 3}
+  arrowSpawnPoint: {fileID: 2721202290180669076}
+  projectileRoot: {fileID: 0}
+  projectileRootName: ProjectileRoot
+  mapRoot: {fileID: 0}
+  mapRootName: MapRoot
+  revealMaskName: WorldRevealMask
+  maskPixelsPerUnit: 16
+  maxMaskTextureSize: 2048
+  maxChargeDuration: 1.1
+  minimumChargeNormalizedToFire: 0.08
+  minArrowDamage: 10
+  maxArrowDamage: 24
+  minArrowSpeed: 12
+  maxArrowSpeed: 28
+  arrowLifetime: 4
+  minRevealRadius: 1.1
+  maxRevealRadius: 2.4
+  revealHardness: 0.62
+  attackCooldownSeconds: 0.35
+  rotateTowardPointer: 1
+  visualAngleOffset: 0
+--- !u!114 &6575554475392951452
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4016453631583081231}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7e0877b4c4fbbb488482e3a555b4337, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BowChargeUi
+  bowWeapon: {fileID: 0}
+  showWhenWeaponDisabled: 0
+  showWhenIdle: 1
+  showNumericValue: 1
+  showChargeThreshold: 1
+  chargeLabel: "\u5F13\u7BAD\u84C4\u529B"
+  idleText: "\u6309\u4F4F\u653B\u51FB\u5F00\u59CB\u84C4\u529B"
+  chargingText: "\u84C4\u529B\u4E2D"
+  cooldownText: "\u51B7\u5374\u4E2D"
+  screenAnchor: 2
+  uiWidth: 260
+  uiHeight: 26
+  screenMarginX: 18
+  screenMarginY: 18
+  backgroundColor: {r: 0, g: 0, b: 0, a: 0.65}
+  fillColor: {r: 0.92, g: 0.67, b: 0.25, a: 1}
+  readyLineColor: {r: 0.47, g: 0.79, b: 0.98, a: 0.9}
+  thresholdColor: {r: 1, g: 1, b: 1, a: 0.6}
+  textColor: {r: 1, g: 1, b: 1, a: 1}

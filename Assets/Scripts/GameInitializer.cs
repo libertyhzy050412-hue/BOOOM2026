@@ -9,6 +9,10 @@ public sealed class GameInitializer : MonoBehaviour
     [SerializeField] private Transform mapRoot;
     [SerializeField] private string mapRootName = "MapRoot";
     [SerializeField] private bool initializeOnStart = true;
+    [Header("Weapon Setup")]
+    [SerializeField] private WeaponBase fallbackWeaponPrefab;
+    [SerializeField] private string playerWeaponMountName = "WeaponMount";
+    [SerializeField] private bool resetWeaponLocalTransform = true;
 
     private void Start()
     {
@@ -30,7 +34,9 @@ public sealed class GameInitializer : MonoBehaviour
         GameObject existingPlayer = FindExistingPlayerObject();
         if (existingPlayer != null)
         {
-            return existingPlayer.GetComponent<Player>();
+            Player existingPlayerComponent = existingPlayer.GetComponent<Player>();
+            EnsurePlayerWeaponLoadout(existingPlayerComponent);
+            return existingPlayerComponent;
         }
 
         GameObject prefab = ResolvePlayerPrefab();
@@ -54,6 +60,9 @@ public sealed class GameInitializer : MonoBehaviour
         {
             Debug.LogWarning("[GameInitializer] 创建出来的 Player 预制体上没有 Player 组件。", instance);
         }
+
+        EnsurePlayerWeaponLoadout(player);
+        RewardSelectionSession.ApplyRunBonuses(player);
 
         return player;
     }
@@ -158,5 +167,79 @@ public sealed class GameInitializer : MonoBehaviour
         {
             mapRoot = rootObject.transform;
         }
+    }
+
+    private void EnsurePlayerWeaponLoadout(Player player)
+    {
+        if (player == null)
+        {
+            return;
+        }
+
+        WeaponBase weaponPrefab = WeaponSelectionSession.SelectedWeaponPrefab != null
+            ? WeaponSelectionSession.SelectedWeaponPrefab
+            : fallbackWeaponPrefab;
+
+        if (weaponPrefab == null)
+        {
+            return;
+        }
+
+        ClearExistingWeapons(player);
+
+        Transform weaponParent = ResolveWeaponMount(player.transform);
+        WeaponBase weaponInstance = Instantiate(weaponPrefab, weaponParent, false);
+        weaponInstance.name = weaponPrefab.name;
+
+        if (resetWeaponLocalTransform)
+        {
+            Transform weaponTransform = weaponInstance.transform;
+            weaponTransform.localPosition = Vector3.zero;
+            weaponTransform.localRotation = Quaternion.identity;
+            weaponTransform.localScale = Vector3.one;
+        }
+
+        weaponInstance.SetOwner(player);
+        weaponInstance.SetWeaponEnabled(true);
+    }
+
+    private void ClearExistingWeapons(Player player)
+    {
+        WeaponBase[] existingWeapons = player.GetComponentsInChildren<WeaponBase>(true);
+        for (int index = 0; index < existingWeapons.Length; index++)
+        {
+            WeaponBase existingWeapon = existingWeapons[index];
+            if (existingWeapon == null)
+            {
+                continue;
+            }
+
+            if (existingWeapon.gameObject == player.gameObject)
+            {
+                continue;
+            }
+
+            Destroy(existingWeapon.gameObject);
+        }
+    }
+
+    private Transform ResolveWeaponMount(Transform playerTransform)
+    {
+        if (playerTransform == null || string.IsNullOrWhiteSpace(playerWeaponMountName))
+        {
+            return playerTransform;
+        }
+
+        Transform[] childTransforms = playerTransform.GetComponentsInChildren<Transform>(true);
+        for (int index = 0; index < childTransforms.Length; index++)
+        {
+            Transform childTransform = childTransforms[index];
+            if (childTransform != null && childTransform != playerTransform && childTransform.name == playerWeaponMountName)
+            {
+                return childTransform;
+            }
+        }
+
+        return playerTransform;
     }
 }

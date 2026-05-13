@@ -223,7 +223,8 @@ public sealed class SummonOne : SummonBase
     {
         if (lockedTarget != null)
         {
-            lockedTarget.ApplyDamage(chargeDamage, DamageTeam.Player, this);
+            float attackPowerMultiplier = Owner != null ? Mathf.Max(0f, Owner.AttackPowerPercent) * 0.01f : 1f;
+            lockedTarget.ApplyDamage(chargeDamage * attackPowerMultiplier, DamageTeam.Player, this);
         }
 
         FinishCharge();

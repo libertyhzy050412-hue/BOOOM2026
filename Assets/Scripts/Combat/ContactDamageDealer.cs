@@ -19,6 +19,8 @@ public sealed class ContactDamageDealer : MonoBehaviour
     private WeaponBase ownerWeapon;
     private SummonBase ownerSummon;
 
+    public float DamageAmount => damageAmount;
+
     private void Awake()
     {
         ResolveOwnerDamageable();
@@ -166,6 +168,11 @@ public sealed class ContactDamageDealer : MonoBehaviour
         damageable = null;
         damageableComponent = null;
         return false;
+    }
+
+    public void SetDamageAmount(float value)
+    {
+        damageAmount = Mathf.Max(0f, value);
     }
 
     private void OnValidate()
