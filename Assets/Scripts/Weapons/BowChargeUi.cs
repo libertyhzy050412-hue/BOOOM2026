@@ -33,6 +33,7 @@ public sealed class BowChargeUi : MonoBehaviour
 
     private GUIStyle labelStyle;
     private GUIStyle valueStyle;
+    private int lastLayoutSignature = int.MinValue;
 
     private void Awake()
     {
@@ -158,7 +159,7 @@ public sealed class BowChargeUi : MonoBehaviour
                 break;
         }
 
-        return new Rect(x, y, width, height);
+        return SimpleGuiTheme.ClampToSafeArea(new Rect(x, y, width, height));
     }
 
     private void ResolveReferences()
@@ -171,13 +172,17 @@ public sealed class BowChargeUi : MonoBehaviour
 
     private void EnsureGuiResources()
     {
-        if (labelStyle == null)
+        int layoutSignature = SimpleGuiTheme.GetLayoutSignature();
+        if (labelStyle != null && lastLayoutSignature == layoutSignature)
         {
-            labelStyle = SimpleGuiTheme.CreateLabelStyle(15, FontStyle.Bold, TextAnchor.UpperLeft, textColor, false);
+            return;
         }
 
-        if (valueStyle == null)
+        lastLayoutSignature = layoutSignature;
+
+        if (labelStyle == null || lastLayoutSignature == layoutSignature)
         {
+            labelStyle = SimpleGuiTheme.CreateLabelStyle(15, FontStyle.Bold, TextAnchor.UpperLeft, textColor, false);
             valueStyle = SimpleGuiTheme.CreateLabelStyle(14, FontStyle.Bold, TextAnchor.UpperRight, textColor, false);
         }
     }

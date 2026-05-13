@@ -19,21 +19,67 @@ public static class SimpleGuiTheme
 
     public static float Scale(float baseValue)
     {
-        float scale = Mathf.Clamp(Screen.height / 1080f, 0.82f, 1.2f);
+        Rect safeArea = GetSafeAreaRaw();
+        float widthScale = safeArea.width / 1920f;
+        float heightScale = safeArea.height / 1080f;
+        float scale = Mathf.Clamp(Mathf.Min(widthScale, heightScale), 0.6f, 1.2f);
         return baseValue * scale;
+    }
+
+    public static int GetLayoutSignature()
+    {
+        Rect safeArea = GetSafeAreaRaw();
+
+        unchecked
+        {
+            int width = Mathf.RoundToInt(safeArea.width);
+            int height = Mathf.RoundToInt(safeArea.height);
+            int safeX = Mathf.RoundToInt(safeArea.x);
+            int safeY = Mathf.RoundToInt(safeArea.y);
+            return (((width * 397) ^ height) * 397 ^ safeX) * 397 ^ safeY;
+        }
+    }
+
+    public static Rect GetSafeArea(float margin = 0f)
+    {
+        Rect safeArea = GetSafeAreaRaw();
+        float horizontalMargin = Mathf.Clamp(margin, 0f, safeArea.width * 0.5f);
+        float verticalMargin = Mathf.Clamp(margin, 0f, safeArea.height * 0.5f);
+
+        return new Rect(
+            safeArea.x + horizontalMargin,
+            safeArea.y + verticalMargin,
+            Mathf.Max(0f, safeArea.width - horizontalMargin * 2f),
+            Mathf.Max(0f, safeArea.height - verticalMargin * 2f));
     }
 
     public static Rect CenterRect(float widthRatio, float heightRatio, float minWidth, float minHeight, float margin)
     {
-        float width = Screen.width * widthRatio;
+        Rect safeArea = GetSafeArea(margin);
+
+        float width = safeArea.width * widthRatio;
         width = Mathf.Max(width, minWidth);
-        width = Mathf.Min(width, Mathf.Max(0f, Screen.width - margin * 2f));
+        width = Mathf.Min(width, safeArea.width);
 
-        float height = Screen.height * heightRatio;
+        float height = safeArea.height * heightRatio;
         height = Mathf.Max(height, minHeight);
-        height = Mathf.Min(height, Mathf.Max(0f, Screen.height - margin * 2f));
+        height = Mathf.Min(height, safeArea.height);
 
-        return new Rect((Screen.width - width) * 0.5f, (Screen.height - height) * 0.5f, width, height);
+        return new Rect(
+            safeArea.x + (safeArea.width - width) * 0.5f,
+            safeArea.y + (safeArea.height - height) * 0.5f,
+            width,
+            height);
+    }
+
+    public static Rect ClampToSafeArea(Rect rect, float margin = 0f)
+    {
+        Rect safeArea = GetSafeArea(margin);
+        float width = Mathf.Min(rect.width, safeArea.width);
+        float height = Mathf.Min(rect.height, safeArea.height);
+        float x = Mathf.Clamp(rect.x, safeArea.x, safeArea.xMax - width);
+        float y = Mathf.Clamp(rect.y, safeArea.y, safeArea.yMax - height);
+        return new Rect(x, y, width, height);
     }
 
     public static Rect Inset(Rect rect, float horizontalPadding, float verticalPadding)
@@ -41,8 +87,8 @@ public static class SimpleGuiTheme
         return new Rect(
             rect.x + horizontalPadding,
             rect.y + verticalPadding,
-            rect.width - horizontalPadding * 2f,
-            rect.height - verticalPadding * 2f);
+            Mathf.Max(0f, rect.width - horizontalPadding * 2f),
+            Mathf.Max(0f, rect.height - verticalPadding * 2f));
     }
 
     public static void DrawBackdrop()
@@ -190,6 +236,21 @@ public static class SimpleGuiTheme
         {
             whiteTexture = Texture2D.whiteTexture;
         }
+    }
+
+    private static Rect GetSafeAreaRaw()
+    {
+        Rect safeArea = Screen.safeArea;
+        if (safeArea.width <= 0f || safeArea.height <= 0f)
+        {
+            return new Rect(0f, 0f, Screen.width, Screen.height);
+        }
+
+        return new Rect(
+            safeArea.x,
+            Screen.height - safeArea.y - safeArea.height,
+            safeArea.width,
+            safeArea.height);
     }
 
     private static Texture2D CreateColorTexture(Color color)

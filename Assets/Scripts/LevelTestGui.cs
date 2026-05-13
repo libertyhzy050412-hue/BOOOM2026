@@ -33,6 +33,7 @@ public sealed class LevelTestGui : MonoBehaviour
     private GUIStyle rewardButtonStyle;
     private GUIStyle rewardMissingIconStyle;
     private Vector2 rewardScrollPosition;
+    private int lastLayoutSignature = int.MinValue;
 
     private void Awake()
     {
@@ -51,27 +52,44 @@ public sealed class LevelTestGui : MonoBehaviour
     private void DrawHud()
     {
         float cardWidth = Mathf.Min(Mathf.Max(hudWidth, Screen.width * 0.22f), Mathf.Max(hudWidth, SimpleGuiTheme.Scale(360f)));
-        float cardHeight = Mathf.Max(hudHeight + SimpleGuiTheme.Scale(48f), SimpleGuiTheme.Scale(164f));
-        Rect hudRect = new Rect(screenMargin, screenMargin, cardWidth, cardHeight);
+        float horizontalPadding = SimpleGuiTheme.Scale(16f);
+        float verticalPadding = SimpleGuiTheme.Scale(14f);
+        float lineHeight = SimpleGuiTheme.Scale(20f);
+        float valueHeight = SimpleGuiTheme.Scale(30f);
+        float valueGap = SimpleGuiTheme.Scale(4f);
+        float sectionGap = SimpleGuiTheme.Scale(12f);
+        float healthBarHeight = SimpleGuiTheme.Scale(24f);
+        float requiredContentHeight = lineHeight
+            + sectionGap
+            + lineHeight + valueGap + valueHeight
+            + sectionGap
+            + lineHeight + valueGap + valueHeight
+            + sectionGap
+            + lineHeight + valueGap + healthBarHeight;
+        float cardHeight = Mathf.Max(hudHeight + SimpleGuiTheme.Scale(48f), requiredContentHeight + verticalPadding * 2f);
+        Rect hudRect = SimpleGuiTheme.ClampToSafeArea(new Rect(screenMargin, screenMargin, cardWidth, cardHeight), screenMargin);
 
         SimpleGuiTheme.DrawPanel(hudRect, new Color(0.11f, 0.15f, 0.2f, 0.93f));
 
-        Rect contentRect = SimpleGuiTheme.Inset(hudRect, SimpleGuiTheme.Scale(16f), SimpleGuiTheme.Scale(14f));
-        float lineHeight = SimpleGuiTheme.Scale(20f);
-        float valueHeight = SimpleGuiTheme.Scale(30f);
-        float gap = SimpleGuiTheme.Scale(8f);
+        Rect contentRect = SimpleGuiTheme.Inset(hudRect, horizontalPadding, verticalPadding);
+        float cursorY = contentRect.y;
 
-        GUI.Label(new Rect(contentRect.x, contentRect.y, contentRect.width, lineHeight), "战斗概览", hudTitleStyle);
-        GUI.Label(new Rect(contentRect.x, contentRect.y + lineHeight + gap, contentRect.width, lineHeight), "当前波次", hudMetaStyle);
-        GUI.Label(new Rect(contentRect.x, contentRect.y + lineHeight + gap + SimpleGuiTheme.Scale(18f), contentRect.width, valueHeight), GetWaveProgressText(), hudValueStyle);
+        GUI.Label(new Rect(contentRect.x, cursorY, contentRect.width, lineHeight), "战斗概览", hudTitleStyle);
+        cursorY += lineHeight + sectionGap;
 
-        float timerY = contentRect.y + lineHeight + gap + valueHeight + SimpleGuiTheme.Scale(14f);
-        GUI.Label(new Rect(contentRect.x, timerY, contentRect.width, lineHeight), "剩余时间", hudMetaStyle);
-        GUI.Label(new Rect(contentRect.x, timerY + SimpleGuiTheme.Scale(18f), contentRect.width, valueHeight), FormatTime(GetRemainingTime()), hudLabelStyle);
+        GUI.Label(new Rect(contentRect.x, cursorY, contentRect.width, lineHeight), "当前波次", hudMetaStyle);
+        cursorY += lineHeight + valueGap;
+        GUI.Label(new Rect(contentRect.x, cursorY, contentRect.width, valueHeight), GetWaveProgressText(), hudValueStyle);
+        cursorY += valueHeight + sectionGap;
 
-        float healthY = contentRect.yMax - SimpleGuiTheme.Scale(48f);
-        GUI.Label(new Rect(contentRect.x, healthY - SimpleGuiTheme.Scale(22f), contentRect.width, lineHeight), "玩家生命", hudMetaStyle);
-        DrawHealthBar(new Rect(contentRect.x, healthY, contentRect.width, SimpleGuiTheme.Scale(24f)), GetHealthText(), GetNormalizedHealth());
+        GUI.Label(new Rect(contentRect.x, cursorY, contentRect.width, lineHeight), "剩余时间", hudMetaStyle);
+        cursorY += lineHeight + valueGap;
+        GUI.Label(new Rect(contentRect.x, cursorY, contentRect.width, valueHeight), FormatTime(GetRemainingTime()), hudLabelStyle);
+        cursorY += valueHeight + sectionGap;
+
+        GUI.Label(new Rect(contentRect.x, cursorY, contentRect.width, lineHeight), "玩家生命", hudMetaStyle);
+        cursorY += lineHeight + valueGap;
+        DrawHealthBar(new Rect(contentRect.x, cursorY, contentRect.width, healthBarHeight), GetHealthText(), GetNormalizedHealth());
     }
 
     private void DrawPopup()
@@ -325,10 +343,13 @@ public sealed class LevelTestGui : MonoBehaviour
 
     private void EnsureStyles()
     {
-        if (hudTitleStyle != null)
+        int layoutSignature = SimpleGuiTheme.GetLayoutSignature();
+        if (hudTitleStyle != null && lastLayoutSignature == layoutSignature)
         {
             return;
         }
+
+        lastLayoutSignature = layoutSignature;
 
         hudTitleStyle = SimpleGuiTheme.CreateLabelStyle(18, FontStyle.Bold, TextAnchor.UpperLeft, SimpleGuiTheme.TextPrimaryColor, false);
         hudMetaStyle = SimpleGuiTheme.CreateLabelStyle(14, FontStyle.Bold, TextAnchor.UpperLeft, SimpleGuiTheme.TextSecondaryColor, false);
