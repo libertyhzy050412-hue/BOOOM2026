@@ -52,6 +52,10 @@ MonoBehaviour:
   projectileRenderers:
   - {fileID: 7511708714306208221}
   destroyOnBlockingHit: 1
+  revealTrailWhileFlying: 1
+  trailRevealRadius: 0.75
+  trailRevealHardness: 0.52
+  trailRevealSpacingRatio: 0.3
   rotateAlongVelocity: 1
   forceVisibleSorting: 1
   forceNoMaskInteraction: 1

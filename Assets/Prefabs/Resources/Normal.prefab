@@ -51,9 +51,9 @@ MonoBehaviour:
   targetPlayer: {fileID: 0}
   enemyEnabled: 1
   useRigidbodyMovement: 1
-  moveSpeed: 5.5
-  maxHealth: 20
-  currentHealth: 20
+  moveSpeed: 4
+  maxHealth: 15
+  currentHealth: 15
   restoreOuterWorldAlongPath: 1
   restoreRadius: 0.72
   restoreHardness: 0.72

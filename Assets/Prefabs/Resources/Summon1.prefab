@@ -62,7 +62,7 @@ MonoBehaviour:
   chargeEndSpeed: 13
   chargeDuration: 0.35
   lockedTargetContactDistance: 0.28
-  chargeDamage: 10
+  chargeDamage: 5
 --- !u!1 &6486835514628603163
 GameObject:
   m_ObjectHideFlags: 0

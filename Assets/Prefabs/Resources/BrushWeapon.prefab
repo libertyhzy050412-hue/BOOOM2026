@@ -60,6 +60,8 @@ MonoBehaviour:
   brushSpreadPerSecond: 1.05
   brushThinSpeedStart: 2
   brushThinSpeedEnd: 15
+  brushStartExpandDuration: 0.16
+  brushStartToSpeedBlendDuration: 0.1
   fastMoveRadiusFactor: 0.36
   cursorSpeedSmoothing: 14
   stationaryPaintInterval: 0.055
@@ -73,8 +75,8 @@ MonoBehaviour:
   maxMaskTextureSize: 2048
   maxInkAmount: 30
   inkCostPerWorldUnit: 1
-  inkRecoveryDelay: 0.8
-  inkRecoveryPerSecond: 4
+  inkRecoveryDelay: 0.2
+  inkRecoveryPerSecond: 6
   depletedInkResumeNormalized: 0.12
   enableSummonSpawning: 1
   summonOnePrefab: {fileID: 804503144097626695, guid: 76d1daf117459ce4b801aa7687a59d54, type: 3}
@@ -103,6 +105,7 @@ MonoBehaviour:
   showWhenWeaponDisabled: 0
   showNumericValue: 1
   inkLabel: "\u989C\u6599"
+  screenAnchor: 0
   uiWidth: 240
   uiHeight: 26
   screenMarginX: 18
