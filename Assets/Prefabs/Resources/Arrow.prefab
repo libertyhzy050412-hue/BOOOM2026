@@ -49,8 +49,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BowArrowProjectile
   cachedRigidbody: {fileID: -4345580796863217751}
   cachedCollider: {fileID: 3629201173734943341}
+  projectileRenderers:
+  - {fileID: 7511708714306208221}
   destroyOnBlockingHit: 1
   rotateAlongVelocity: 1
+  forceVisibleSorting: 1
+  forceNoMaskInteraction: 1
+  matchFirstRendererSortingLayer: 1
+  overrideSortingLayerName: 
+  projectileSortingOrder: 4
   visualAngleOffset: 0
 --- !u!61 &3629201173734943341
 BoxCollider2D:
@@ -86,7 +93,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: -1.364955, y: 0.013649508}
+  m_Offset: {x: 1.1, y: 0}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0, y: 0}
@@ -96,7 +103,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.27657354, y: 0.35847107}
+  m_Size: {x: 1.1, y: 0.6}
   m_EdgeRadius: 0
 --- !u!50 &-4345580796863217751
 Rigidbody2D:
@@ -208,7 +215,7 @@ SpriteRenderer:
   m_MaskInteraction: 0
   m_Sprite: {fileID: -2919936157445225253, guid: c6b7765e5ae657e44b5c941906402144, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_FlipX: 0
+  m_FlipX: 1
   m_FlipY: 0
   m_DrawMode: 0
   m_Size: {x: 3.26, y: 0.4}

@@ -74,8 +74,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55a2b19ebd0699942aa7f6fa523b2fbd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  controlledBody: {fileID: 0}
-  movementAnimator: {fileID: 0}
+  controlledBody: {fileID: 5852374124423419086}
+  movementAnimator: {fileID: 1233853226495088185}
   collisionSkin: 0.02
 --- !u!50 &5852374124423419086
 Rigidbody2D:
