@@ -17,8 +17,9 @@ public sealed class BowChargeUi : MonoBehaviour
     [SerializeField] private bool showNumericValue = true;
     [SerializeField] private bool showChargeThreshold = true;
     [SerializeField] private string chargeLabel = "弓箭蓄力";
-    [SerializeField] private string idleText = "按住攻击开始蓄力";
-    [SerializeField] private string chargingText = "蓄力中";
+    [SerializeField] private string idleText = "等待自动蓄力";
+    [SerializeField] private string chargingText = "自动蓄力中";
+    [SerializeField] private string readyText = "蓄力完成";
     [SerializeField] private string cooldownText = "冷却中";
     [SerializeField] private ScreenAnchor screenAnchor = ScreenAnchor.BottomRight;
     [SerializeField, Min(140f)] private float uiWidth = 260f;
@@ -64,7 +65,7 @@ public sealed class BowChargeUi : MonoBehaviour
             return false;
         }
 
-        return showWhenIdle || bowWeapon.IsCharging || bowWeapon.IsInAttackCooldown;
+        return showWhenIdle || bowWeapon.IsCharging || bowWeapon.IsFullyCharged || bowWeapon.IsInAttackCooldown;
     }
 
     private void DrawChargeBar()
@@ -126,6 +127,13 @@ public sealed class BowChargeUi : MonoBehaviour
             return showNumericValue
                 ? $"{cooldownText} {bowWeapon.AttackCooldownRemaining:0.00}s"
                 : cooldownText;
+        }
+
+        if (bowWeapon.IsFullyCharged)
+        {
+            return showNumericValue
+                ? $"{readyText} 100%"
+                : readyText;
         }
 
         if (bowWeapon.IsCharging)

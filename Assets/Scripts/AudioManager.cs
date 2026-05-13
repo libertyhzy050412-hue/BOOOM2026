@@ -41,6 +41,7 @@ public sealed class AudioManager : MonoBehaviour
     private float loopSoundVolume = 0.85f;
 
     private AudioSource musicSource;
+    private AudioSource uiSource;
     private AudioSource oneShotSource;
     private AudioSource footstepLoopSource;
     private AudioSource brushLoopSource;
@@ -84,13 +85,13 @@ public sealed class AudioManager : MonoBehaviour
     public static void PlayUiHover()
     {
         AudioManager manager = FindInstance();
-        manager?.PlayOneShot(manager.uiHoverSound, manager.uiSoundVolume);
+        manager?.PlayUiOneShot(manager.uiHoverSound);
     }
 
     public static void PlayUiClick()
     {
         AudioManager manager = FindInstance();
-        manager?.PlayOneShot(manager.uiClickSound, manager.uiSoundVolume);
+        manager?.PlayUiOneShot(manager.uiClickSound);
     }
 
     public static void SetFootstepLoopActive(bool active)
@@ -219,6 +220,17 @@ public sealed class AudioManager : MonoBehaviour
         musicSource.Play();
     }
 
+    private void PlayUiOneShot(AudioClip clip)
+    {
+        EnsureSources();
+        if (clip == null || uiSource == null)
+        {
+            return;
+        }
+
+        uiSource.PlayOneShot(clip, Mathf.Clamp01(uiSoundVolume));
+    }
+
     private void PlayOneShot(AudioClip clip, float volume)
     {
         EnsureSources();
@@ -264,6 +276,7 @@ public sealed class AudioManager : MonoBehaviour
     private void EnsureSources()
     {
         musicSource = EnsureChildSource(musicSource, "MusicSource", true);
+        uiSource = EnsureChildSource(uiSource, "UiSource", false);
         oneShotSource = EnsureChildSource(oneShotSource, "OneShotSource", false);
         footstepLoopSource = EnsureChildSource(footstepLoopSource, "FootstepLoopSource", true);
         brushLoopSource = EnsureChildSource(brushLoopSource, "BrushLoopSource", true);
@@ -301,6 +314,11 @@ public sealed class AudioManager : MonoBehaviour
     private void ApplySourceVolumes()
     {
         EnsureSources();
+        if (uiSource != null)
+        {
+            uiSource.volume = 1f;
+        }
+
         if (musicSource != null)
         {
             musicSource.volume = musicVolume;

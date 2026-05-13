@@ -4,8 +4,13 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class BowWeapon : WeaponBase
 {
+    private const float FullChargeNormalizedToFire = 0.999f;
+    private static readonly int IsAttackHash = Animator.StringToHash("IsAttack");
+
     [SerializeField] private BowArrowProjectile arrowPrefab;
     [SerializeField] private Transform arrowSpawnPoint;
+    [SerializeField] private Animator attackAnimator;
+    [SerializeField, Min(0.01f)] private float attackAnimatorTrueDuration = 0.18f;
     [SerializeField] private Transform projectileRoot;
     [SerializeField] private string projectileRootName = "ProjectileRoot";
     [SerializeField] private Transform mapRoot;
@@ -13,15 +18,23 @@ public sealed class BowWeapon : WeaponBase
     [SerializeField] private string revealMaskName = "WorldRevealMask";
     [SerializeField, Range(1f, 64f)] private float maskPixelsPerUnit = 16f;
     [SerializeField, Min(256)] private int maxMaskTextureSize = 2048;
+
+    [Header("蓄力设置")]
     [SerializeField, Min(0.05f)] private float maxChargeDuration = 1.1f;
-    [SerializeField, Range(0f, 1f)] private float minimumChargeNormalizedToFire = 0.08f;
-    [SerializeField, Min(0f)] private float minArrowDamage = 10f;
-    [SerializeField, Min(0f)] private float maxArrowDamage = 24f;
-    [SerializeField, Min(0.1f)] private float minArrowSpeed = 12f;
-    [SerializeField, Min(0.1f)] private float maxArrowSpeed = 28f;
+    [FormerlySerializedAs("minimumChargeNormalizedToFire")]
+    [SerializeField, HideInInspector] private float legacyMinimumChargeNormalizedToFire = 1f;
+
+    [Header("满蓄发射属性")]
+    [SerializeField, HideInInspector, Min(0f)] private float minArrowDamage = 10f;
+    [SerializeField, Min(0f), InspectorName("满蓄箭矢伤害"), Tooltip("当前弓箭只能在蓄力完成后发射，因此实际使用这个伤害值。")]
+    private float maxArrowDamage = 24f;
+    [SerializeField, HideInInspector, Min(0.1f)] private float minArrowSpeed = 12f;
+    [SerializeField, Min(0.1f), InspectorName("满蓄箭矢速度"), Tooltip("当前弓箭只能在蓄力完成后发射，因此实际使用这个速度值。")]
+    private float maxArrowSpeed = 28f;
     [SerializeField, Min(0.1f)] private float arrowLifetime = 4f;
-    [SerializeField, Min(0.05f)] private float minRevealRadius = 1.1f;
-    [SerializeField, Min(0.05f)] private float maxRevealRadius = 2.4f;
+    [SerializeField, HideInInspector, Min(0.05f)] private float minRevealRadius = 1.1f;
+    [SerializeField, Min(0.05f), InspectorName("满蓄显现半径"), Tooltip("当前弓箭只能在蓄力完成后发射，因此实际使用这个显现半径。")]
+    private float maxRevealRadius = 2.4f;
     [SerializeField, Range(0.05f, 0.95f)] private float revealHardness = 0.62f;
     [FormerlySerializedAs("postFireCooldown")]
     [SerializeField, Min(0f)] private float attackCooldownSeconds = 0.35f;
@@ -30,24 +43,31 @@ public sealed class BowWeapon : WeaponBase
 
     private float currentChargeTime;
     private float fireCooldownTimer;
+    private float attackAnimatorTimer;
     private bool wasPrimaryUseHeld;
     private bool hasLoggedMissingCamera;
+    private bool attackAnimatorHasIsAttack;
     private Vector2 lastAimDirection = Vector2.right;
 
     public float ChargeNormalized => Mathf.Clamp01(currentChargeTime / Mathf.Max(maxChargeDuration, 0.0001f));
-    public float MinimumChargeNormalizedToFire => minimumChargeNormalizedToFire;
+    public float MinimumChargeNormalizedToFire => 1f;
     public float AttackCooldownRemaining => fireCooldownTimer;
     public bool IsInAttackCooldown => fireCooldownTimer > 0.0001f;
-    public bool IsCharging => !IsInAttackCooldown && wasPrimaryUseHeld && currentChargeTime > 0f;
+    public bool IsFullyCharged => !IsInAttackCooldown && ChargeNormalized >= FullChargeNormalizedToFire;
+    public bool IsCharging => !IsInAttackCooldown && !IsFullyCharged;
 
     protected override void Awake()
     {
         base.Awake();
         ResolveMapRoot();
+        ResolveAttackAnimator();
+        ApplyAttackAnimation(false);
     }
 
     protected override void Tick(float deltaTime)
     {
+        ResolveAttackAnimator();
+        UpdateAttackAnimation(deltaTime);
         fireCooldownTimer = Mathf.Max(0f, fireCooldownTimer - deltaTime);
 
         if (TryGetPointerWorldPosition(out Vector3 pointerPosition))
@@ -61,25 +81,20 @@ public sealed class BowWeapon : WeaponBase
         }
 
         bool primaryUseHeld = IsPrimaryUseHeld();
+        bool primaryUsePressed = primaryUseHeld && !wasPrimaryUseHeld;
         if (IsInAttackCooldown)
         {
             currentChargeTime = 0f;
-            wasPrimaryUseHeld = false;
+            wasPrimaryUseHeld = primaryUseHeld;
             return;
         }
 
-        if (primaryUseHeld)
-        {
-            currentChargeTime = Mathf.Min(maxChargeDuration, currentChargeTime + Mathf.Max(deltaTime, 0f));
-        }
-        else if (wasPrimaryUseHeld)
+        currentChargeTime = Mathf.Min(maxChargeDuration, currentChargeTime + Mathf.Max(deltaTime, 0f));
+
+        if (primaryUsePressed && IsFullyCharged)
         {
             TryFireArrow();
-            currentChargeTime = 0f;
-        }
-        else
-        {
-            currentChargeTime = 0f;
+            primaryUseHeld = false;
         }
 
         wasPrimaryUseHeld = primaryUseHeld;
@@ -89,12 +104,21 @@ public sealed class BowWeapon : WeaponBase
     {
         currentChargeTime = 0f;
         fireCooldownTimer = 0f;
+        attackAnimatorTimer = 0f;
         wasPrimaryUseHeld = false;
+        ApplyAttackAnimation(false);
+    }
+
+    protected override void OnOwnerChanged()
+    {
+        ResolveAttackAnimator();
+        ApplyAttackAnimation(false);
     }
 
     private void Reset()
     {
         arrowSpawnPoint = transform;
+        attackAnimator = GetComponentInParent<Animator>();
         projectileRoot = null;
     }
 
@@ -103,7 +127,8 @@ public sealed class BowWeapon : WeaponBase
         maskPixelsPerUnit = Mathf.Clamp(maskPixelsPerUnit, 1f, 64f);
         maxMaskTextureSize = Mathf.Clamp(maxMaskTextureSize, 256, 4096);
         maxChargeDuration = Mathf.Max(0.05f, maxChargeDuration);
-        minimumChargeNormalizedToFire = Mathf.Clamp01(minimumChargeNormalizedToFire);
+        attackAnimatorTrueDuration = Mathf.Max(0.01f, attackAnimatorTrueDuration);
+        legacyMinimumChargeNormalizedToFire = 1f;
         minArrowDamage = Mathf.Max(0f, minArrowDamage);
         maxArrowDamage = Mathf.Max(minArrowDamage, maxArrowDamage);
         minArrowSpeed = Mathf.Max(0.1f, minArrowSpeed);
@@ -141,7 +166,7 @@ public sealed class BowWeapon : WeaponBase
         }
 
         float chargeNormalized = ChargeNormalized;
-        if (chargeNormalized < minimumChargeNormalizedToFire)
+        if (chargeNormalized < FullChargeNormalizedToFire)
         {
             return;
         }
@@ -150,15 +175,16 @@ public sealed class BowWeapon : WeaponBase
         Transform spawnReference = arrowSpawnPoint != null ? arrowSpawnPoint : transform;
         Vector3 spawnPosition = spawnReference.position;
         float attackPowerMultiplier = Owner != null ? Mathf.Max(0f, Owner.AttackPowerPercent) * 0.01f : 1f;
+        TriggerAttackAnimation();
         AudioManager.PlayBowShoot();
         BowArrowProjectile arrowInstance = Instantiate(arrowPrefab, spawnPosition, Quaternion.identity, EnsureProjectileRoot());
         arrowInstance.Launch(
             Owner,
             fireDirection,
-            Mathf.Lerp(minArrowSpeed, maxArrowSpeed, chargeNormalized),
-            Mathf.Lerp(minArrowDamage, maxArrowDamage, chargeNormalized) * attackPowerMultiplier,
+            maxArrowSpeed,
+            maxArrowDamage * attackPowerMultiplier,
             arrowLifetime,
-            Mathf.Lerp(minRevealRadius, maxRevealRadius, chargeNormalized),
+            maxRevealRadius,
             revealHardness,
             mapRoot,
             mapRootName,
@@ -167,7 +193,103 @@ public sealed class BowWeapon : WeaponBase
             maxMaskTextureSize);
         fireCooldownTimer = attackCooldownSeconds;
         currentChargeTime = 0f;
-        wasPrimaryUseHeld = false;
+    }
+
+    private void ResolveAttackAnimator()
+    {
+        if (attackAnimator == null)
+        {
+            Player owner = Owner;
+            if (owner != null)
+            {
+                Animator ownerAnimator = owner.GetComponent<Animator>();
+                if (AnimatorHasBoolParameter(ownerAnimator, IsAttackHash))
+                {
+                    attackAnimator = ownerAnimator;
+                }
+                else
+                {
+                    Animator[] animators = owner.GetComponentsInChildren<Animator>(true);
+                    for (int index = 0; index < animators.Length; index++)
+                    {
+                        if (AnimatorHasBoolParameter(animators[index], IsAttackHash))
+                        {
+                            attackAnimator = animators[index];
+                            break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                Animator[] animators = GetComponentsInChildren<Animator>(true);
+                for (int index = 0; index < animators.Length; index++)
+                {
+                    if (AnimatorHasBoolParameter(animators[index], IsAttackHash))
+                    {
+                        attackAnimator = animators[index];
+                        break;
+                    }
+                }
+            }
+        }
+
+        attackAnimatorHasIsAttack = AnimatorHasBoolParameter(attackAnimator, IsAttackHash);
+    }
+
+    private void TriggerAttackAnimation()
+    {
+        if (!attackAnimatorHasIsAttack)
+        {
+            return;
+        }
+
+        attackAnimatorTimer = Mathf.Max(attackAnimatorTrueDuration, 0.01f);
+        ApplyAttackAnimation(true);
+    }
+
+    private void UpdateAttackAnimation(float deltaTime)
+    {
+        if (!attackAnimatorHasIsAttack || attackAnimatorTimer <= 0f)
+        {
+            return;
+        }
+
+        attackAnimatorTimer = Mathf.Max(0f, attackAnimatorTimer - Mathf.Max(deltaTime, 0f));
+        if (attackAnimatorTimer <= 0f)
+        {
+            ApplyAttackAnimation(false);
+        }
+    }
+
+    private void ApplyAttackAnimation(bool isAttacking)
+    {
+        if (!attackAnimatorHasIsAttack)
+        {
+            return;
+        }
+
+        attackAnimator.SetBool(IsAttackHash, isAttacking);
+    }
+
+    private static bool AnimatorHasBoolParameter(Animator animator, int parameterHash)
+    {
+        if (animator == null)
+        {
+            return false;
+        }
+
+        AnimatorControllerParameter[] parameters = animator.parameters;
+        for (int index = 0; index < parameters.Length; index++)
+        {
+            AnimatorControllerParameter parameter = parameters[index];
+            if (parameter.type == AnimatorControllerParameterType.Bool && parameter.nameHash == parameterHash)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private Transform EnsureProjectileRoot()

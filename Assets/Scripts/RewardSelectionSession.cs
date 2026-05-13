@@ -13,6 +13,8 @@ public enum RewardType
 
 public static class RewardSelectionSession
 {
+    private const string BalanceConfigResourcePath = "RewardSelectionBalance";
+
     private sealed class RewardDefinition
     {
         public RewardDefinition(RewardType type, string displayName, string descriptionFormat, string iconResourcePath, bool requiresBrushWeapon)
@@ -31,11 +33,24 @@ public static class RewardSelectionSession
         public bool RequiresBrushWeapon { get; }
     }
 
-    private const float MaxHealthBonusPerStack = 20f;
-    private const float AttackPowerPercentBonusPerStack = 20f;
-    private const float BrushInkCapacityBonusPerStack = 4f;
-    private const float BrushInkRecoveryBonusPerStack = 1.5f;
-    private const float MoveSpeedBonusPerStack = 0.75f;
+    [Serializable]
+    private sealed class RewardBalanceConfig
+    {
+        public float maxHealthBonusPerStack = 20f;
+        public float attackPowerPercentBonusPerStack = 20f;
+        public float brushInkCapacityBonusPerStack = 4f;
+        public float brushInkRecoveryBonusPerStack = 1.5f;
+        public float moveSpeedBonusPerStack = 0.75f;
+
+        public void ClampValues()
+        {
+            maxHealthBonusPerStack = Mathf.Max(0f, maxHealthBonusPerStack);
+            attackPowerPercentBonusPerStack = Mathf.Max(0f, attackPowerPercentBonusPerStack);
+            brushInkCapacityBonusPerStack = Mathf.Max(0f, brushInkCapacityBonusPerStack);
+            brushInkRecoveryBonusPerStack = Mathf.Max(0f, brushInkRecoveryBonusPerStack);
+            moveSpeedBonusPerStack = Mathf.Max(0f, moveSpeedBonusPerStack);
+        }
+    }
 
     private static readonly RewardType[] AllRewardTypes =
     {
@@ -57,6 +72,7 @@ public static class RewardSelectionSession
 
     private static readonly Dictionary<RewardType, int> RewardStacks = new Dictionary<RewardType, int>();
     private static readonly Dictionary<RewardType, Sprite> IconCache = new Dictionary<RewardType, Sprite>();
+    private static RewardBalanceConfig cachedBalanceConfig;
 
     public static int TotalSelectedRewardCount
     {
@@ -190,18 +206,19 @@ public static class RewardSelectionSession
 
     private static string FormatStepValue(RewardType rewardType)
     {
+        RewardBalanceConfig config = GetBalanceConfig();
         switch (rewardType)
         {
             case RewardType.MaxHealth:
-                return MaxHealthBonusPerStack.ToString("0");
+                return config.maxHealthBonusPerStack.ToString("0");
             case RewardType.AttackPower:
-                return AttackPowerPercentBonusPerStack.ToString("0");
+                return config.attackPowerPercentBonusPerStack.ToString("0");
             case RewardType.BrushInkCapacity:
-                return BrushInkCapacityBonusPerStack.ToString("0.0");
+                return config.brushInkCapacityBonusPerStack.ToString("0.0");
             case RewardType.BrushInkRecovery:
-                return BrushInkRecoveryBonusPerStack.ToString("0.0");
+                return config.brushInkRecoveryBonusPerStack.ToString("0.0");
             case RewardType.MoveSpeed:
-                return MoveSpeedBonusPerStack.ToString("0.0");
+                return config.moveSpeedBonusPerStack.ToString("0.0");
             default:
                 return "0";
         }
@@ -209,27 +226,58 @@ public static class RewardSelectionSession
 
     private static float GetTotalMaxHealthBonus()
     {
-        return GetStackCount(RewardType.MaxHealth) * MaxHealthBonusPerStack;
+        RewardBalanceConfig config = GetBalanceConfig();
+        return GetStackCount(RewardType.MaxHealth) * config.maxHealthBonusPerStack;
     }
 
     private static float GetTotalAttackPowerPercentBonus()
     {
-        return GetStackCount(RewardType.AttackPower) * AttackPowerPercentBonusPerStack;
+        RewardBalanceConfig config = GetBalanceConfig();
+        return GetStackCount(RewardType.AttackPower) * config.attackPowerPercentBonusPerStack;
     }
 
     private static float GetTotalBrushInkCapacityBonus()
     {
-        return GetStackCount(RewardType.BrushInkCapacity) * BrushInkCapacityBonusPerStack;
+        RewardBalanceConfig config = GetBalanceConfig();
+        return GetStackCount(RewardType.BrushInkCapacity) * config.brushInkCapacityBonusPerStack;
     }
 
     private static float GetTotalBrushInkRecoveryBonus()
     {
-        return GetStackCount(RewardType.BrushInkRecovery) * BrushInkRecoveryBonusPerStack;
+        RewardBalanceConfig config = GetBalanceConfig();
+        return GetStackCount(RewardType.BrushInkRecovery) * config.brushInkRecoveryBonusPerStack;
     }
 
     private static float GetTotalMoveSpeedBonus()
     {
-        return GetStackCount(RewardType.MoveSpeed) * MoveSpeedBonusPerStack;
+        RewardBalanceConfig config = GetBalanceConfig();
+        return GetStackCount(RewardType.MoveSpeed) * config.moveSpeedBonusPerStack;
+    }
+
+    private static RewardBalanceConfig GetBalanceConfig()
+    {
+        if (cachedBalanceConfig != null)
+        {
+            return cachedBalanceConfig;
+        }
+
+        RewardBalanceConfig config = new RewardBalanceConfig();
+        TextAsset configAsset = Resources.Load<TextAsset>(BalanceConfigResourcePath);
+        if (configAsset != null && !string.IsNullOrWhiteSpace(configAsset.text))
+        {
+            try
+            {
+                JsonUtility.FromJsonOverwrite(configAsset.text, config);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning($"[RewardSelectionSession] 读取奖励数值配置失败，将回退到默认值。资源路径: Resources/{BalanceConfigResourcePath}.json\n{exception.Message}");
+            }
+        }
+
+        config.ClampValues();
+        cachedBalanceConfig = config;
+        return cachedBalanceConfig;
     }
 
     private static void Shuffle<T>(IList<T> values, System.Random random)
