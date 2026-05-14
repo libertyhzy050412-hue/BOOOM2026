@@ -33,12 +33,12 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _EdgeWidth: 5
+    - _EdgeWidth: 2
     - _PatternScale: 0
     - _ScrollSpeed: 3
     m_Colors:
     - _CoreColor: {r: 1, g: 0.007843137, b: 0.46647924, a: 1}
     - _EdgeColor: {r: 1024, g: 0, b: 664.2324, a: 1}
-    - _GlowColor: {r: 1, g: 0.55523705, b: 0, a: 1}
+    - _GlowColor: {r: 5.3403134, g: 1.1923337, b: 2.9829977, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
