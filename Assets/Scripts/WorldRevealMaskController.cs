@@ -454,6 +454,12 @@ public sealed class WorldRevealMaskController : MonoBehaviour
         revealMask.transform.position = new Vector3(bounds.center.x, bounds.center.y, 0f);
         revealMask.transform.rotation = Quaternion.identity;
         revealMask.transform.localScale = new Vector3(revealSize.x / maskTextureWidth, revealSize.y / maskTextureHeight, 1f);
+        
+        //地图涂色与未涂色交界特效
+        Shader.SetGlobalTexture("_GlobalRevealMask", generatedMaskTexture);
+        Shader.SetGlobalVector("_GlobalRevealMask_TexelSize", new Vector4(1f / maskTextureWidth, 1f / maskTextureHeight, maskTextureWidth, maskTextureHeight));
+        Shader.SetGlobalVector("_GlobalRevealMaskMin", new Vector4(revealMin.x, revealMin.y, 0, 0));
+        Shader.SetGlobalVector("_GlobalRevealMaskSize", new Vector4(revealSize.x, revealSize.y, 0, 0));
 
         maskDirty = false;
         hasDirtyRect = false;

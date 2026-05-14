@@ -50,8 +50,6 @@ MonoBehaviour:
   weaponEnabled: 1
   arrowPrefab: {fileID: 1804553030364989890, guid: b0007776943697f4aacf0a15fc5507eb, type: 3}
   arrowSpawnPoint: {fileID: 2721202290180669076}
-  attackAnimator: {fileID: 1233853226495088185, guid: 646990619992bb6478b2821207667df9, type: 3}
-  attackAnimatorTrueDuration: 0.18
   projectileRoot: {fileID: 0}
   projectileRootName: ProjectileRoot
   mapRoot: {fileID: 0}
@@ -61,8 +59,8 @@ MonoBehaviour:
   maxMaskTextureSize: 2048
   maxInkAmount: 12
   inkCostPerWorldUnit: 1
-  inkRecoveryDelay: 0.8
-  inkRecoveryNormalizedPerSecond: 0.33333334
+  inkRecoveryDelay: 0
+  inkRecoveryNormalizedPerSecond: 0.45
   maxChargeDuration: 1.1
   legacyMinimumChargeNormalizedToFire: 1
   minArrowDamage: 10

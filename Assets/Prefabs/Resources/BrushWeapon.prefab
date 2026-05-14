@@ -75,8 +75,8 @@ MonoBehaviour:
   maxMaskTextureSize: 2048
   maxInkAmount: 30
   inkCostPerWorldUnit: 1
-  inkRecoveryDelay: 0.2
-  inkRecoveryPerSecond: 6
+  inkRecoveryDelay: 1
+  inkRecoveryNormalizedPerSecond: 100
   depletedInkResumeNormalized: 0.12
   enableSummonSpawning: 1
   summonOnePrefab: {fileID: 804503144097626695, guid: 76d1daf117459ce4b801aa7687a59d54, type: 3}
@@ -89,6 +89,7 @@ MonoBehaviour:
   summonMinSpacing: 0.75
   summonRevealAlphaThreshold: 0.12
   summonSpawnSampleAttempts: 24
+  inkRecoveryValueMigrated: 1
 --- !u!114 &2506497932928206846
 MonoBehaviour:
   m_ObjectHideFlags: 0

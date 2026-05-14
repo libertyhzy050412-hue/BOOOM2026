@@ -24,6 +24,14 @@ public static class GuiAudioButton
 
     private static void HandleAudio(string key, Rect rect, bool interactive)
     {
+        //跳过Layout阶段可以解决音效的问题
+        Event currentEvent = Event.current;
+
+        if (currentEvent.type == EventType.Layout)
+        {
+            return;
+        }
+        
         CleanupStaleHoverKeys();
         LastSeenFrameByKey[key] = Time.frameCount;
 
@@ -33,7 +41,6 @@ public static class GuiAudioButton
             return;
         }
 
-        Event currentEvent = Event.current;
         bool isHovering = rect.Contains(currentEvent.mousePosition);
 
         if (!isHovering)
