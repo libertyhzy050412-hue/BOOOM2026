@@ -392,8 +392,8 @@ MonoBehaviour:
     spawnCountPerCycle: 2
     maxAliveCount: 10
     maxTotalSpawnCount: 10000
-    minSpawnDistanceFromPlayer: 5
-    maxSpawnDistanceFromPlayer: 5
+    minSpawnDistanceFromPlayer: 10
+    maxSpawnDistanceFromPlayer: 15
     mapEdgePadding: 0
 --- !u!114 &1105370560
 MonoBehaviour:

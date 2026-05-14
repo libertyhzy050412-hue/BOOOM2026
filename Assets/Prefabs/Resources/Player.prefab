@@ -350,7 +350,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: 9221778240222876484, guid: 371fc5ff18765b1469b23068880d2aa1, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -524,6 +524,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: BowWeapon
       objectReference: {fileID: 0}
+    - target: {fileID: 7036946373180897376, guid: bd6e7f16f6da9824ba79032c0a7db90c, type: 3}
+      propertyPath: attackAnimator
+      value: 
+      objectReference: {fileID: 8641872180840318161}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

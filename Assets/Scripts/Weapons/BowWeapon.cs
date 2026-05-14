@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine.Serialization;
 using UnityEngine;
 
@@ -10,8 +11,8 @@ public sealed class BowWeapon : WeaponBase
 
     [SerializeField] private BowArrowProjectile arrowPrefab;
     [SerializeField] private Transform arrowSpawnPoint;
-    [SerializeField] private Animator attackAnimator;
-    [SerializeField, Min(0.01f)] private float attackAnimatorTrueDuration = 0.18f;
+    // [SerializeField] private Animator attackAnimator;
+    // [SerializeField, Min(0.01f)] private float attackAnimatorTrueDuration = 0.18f;
     [SerializeField] private Transform projectileRoot;
     [SerializeField] private string projectileRootName = "ProjectileRoot";
     [SerializeField] private Transform mapRoot;
@@ -51,12 +52,12 @@ public sealed class BowWeapon : WeaponBase
 
     private float currentChargeTime;
     private float fireCooldownTimer;
-    private float attackAnimatorTimer;
+    // private float attackAnimatorTimer;
     private float currentInkAmount;
     private float inkRecoveryDelayTimer;
     private bool wasPrimaryUseHeld;
     private bool hasLoggedMissingCamera;
-    private bool attackAnimatorHasIsAttack;
+    // private bool attackAnimatorHasIsAttack;
     private bool inkRecoveryActive;
     private bool rewardBaseInkStatsCaptured;
     private Vector2 lastAimDirection = Vector2.right;
@@ -75,6 +76,8 @@ public sealed class BowWeapon : WeaponBase
     public bool InkRecoveryActive => inkRecoveryActive;
     public bool HasUsableInk => inkCostPerWorldUnit <= MinimumInkEpsilon || currentInkAmount > MinimumInkEpsilon;
 
+    private List<Animator> validAttackAnimators = new List<Animator>();
+
     protected override void Awake()
     {
         base.Awake();
@@ -90,7 +93,6 @@ public sealed class BowWeapon : WeaponBase
     protected override void Tick(float deltaTime)
     {
         ResolveAttackAnimator();
-        UpdateAttackAnimation(deltaTime);
         UpdateInkRecovery(deltaTime);
         fireCooldownTimer = Mathf.Max(0f, fireCooldownTimer - deltaTime);
 
@@ -106,16 +108,21 @@ public sealed class BowWeapon : WeaponBase
 
         bool primaryUseHeld = IsPrimaryUseHeld();
         bool primaryUsePressed = primaryUseHeld && !wasPrimaryUseHeld;
-        if (IsInAttackCooldown)
-        {
-            currentChargeTime = 0f;
-            wasPrimaryUseHeld = primaryUseHeld;
-            return;
-        }
+        // if (IsInAttackCooldown)
+        // {
+        //     currentChargeTime = 0f;
+        //     wasPrimaryUseHeld = primaryUseHeld;
+        //     return;
+        // }
 
         currentChargeTime = Mathf.Min(maxChargeDuration, currentChargeTime + Mathf.Max(deltaTime, 0f));
-
-        if (primaryUsePressed && IsFullyCharged)
+        
+        //颜料是否恢复完毕
+        bool isInkFull = currentInkAmount >= maxInkAmount - MinimumInkEpsilon;
+        
+        ApplyAttackAnimation(isInkFull);
+        
+        if (primaryUsePressed && isInkFull)
         {
             TryFireArrow();
             primaryUseHeld = false;
@@ -128,7 +135,7 @@ public sealed class BowWeapon : WeaponBase
     {
         currentChargeTime = 0f;
         fireCooldownTimer = 0f;
-        attackAnimatorTimer = 0f;
+        // attackAnimatorTimer = 0f;
         wasPrimaryUseHeld = false;
         ApplyAttackAnimation(false);
     }
@@ -142,7 +149,7 @@ public sealed class BowWeapon : WeaponBase
     private void Reset()
     {
         arrowSpawnPoint = transform;
-        attackAnimator = GetComponentInParent<Animator>();
+        // attackAnimator = GetComponentInParent<Animator>();
         projectileRoot = null;
     }
 
@@ -155,7 +162,7 @@ public sealed class BowWeapon : WeaponBase
         inkRecoveryDelay = Mathf.Max(0f, inkRecoveryDelay);
         inkRecoveryNormalizedPerSecond = Mathf.Max(0f, inkRecoveryNormalizedPerSecond);
         maxChargeDuration = Mathf.Max(0.05f, maxChargeDuration);
-        attackAnimatorTrueDuration = Mathf.Max(0.01f, attackAnimatorTrueDuration);
+        // attackAnimatorTrueDuration = Mathf.Max(0.01f, attackAnimatorTrueDuration);
         legacyMinimumChargeNormalizedToFire = 1f;
         minArrowDamage = Mathf.Max(0f, minArrowDamage);
         maxArrowDamage = Mathf.Max(minArrowDamage, maxArrowDamage);
@@ -199,13 +206,13 @@ public sealed class BowWeapon : WeaponBase
             return;
         }
 
-        float chargeNormalized = ChargeNormalized;
-        if (chargeNormalized < FullChargeNormalizedToFire)
-        {
-            return;
-        }
+        // float chargeNormalized = ChargeNormalized;
+        // if (chargeNormalized < FullChargeNormalizedToFire)
+        // {
+        //     return;
+        // }
 
-        float maxTravelDistance = GetAvailableTravelDistance();
+        float maxTravelDistance = maxInkAmount;
         if (maxTravelDistance <= MinimumInkEpsilon)
         {
             return;
@@ -215,7 +222,7 @@ public sealed class BowWeapon : WeaponBase
         Transform spawnReference = arrowSpawnPoint != null ? arrowSpawnPoint : transform;
         Vector3 spawnPosition = spawnReference.position;
         float attackPowerMultiplier = Owner != null ? Mathf.Max(0f, Owner.AttackPowerPercent) * 0.01f : 1f;
-        TriggerAttackAnimation();
+        // TriggerAttackAnimation();
         AudioManager.PlayBowShoot();
         BowArrowProjectile arrowInstance = Instantiate(arrowPrefab, spawnPosition, Quaternion.identity, EnsureProjectileRoot());
         arrowInstance.Launch(
@@ -232,87 +239,130 @@ public sealed class BowWeapon : WeaponBase
             maskPixelsPerUnit,
             maxMaskTextureSize,
             maxTravelDistance,
-            ConsumeInkForDistance);
+            null);
+        
+        // 发射后瞬间清空所有颜料，并激活恢复计时
+        currentInkAmount = 0f;
+        inkRecoveryActive = true;
+        inkRecoveryDelayTimer = inkRecoveryDelay;
+
         fireCooldownTimer = attackCooldownSeconds;
         currentChargeTime = 0f;
     }
 
+    // private void ResolveAttackAnimator()
+    // {
+    //     if (attackAnimator == null)
+    //     {
+    //         Player owner = Owner;
+    //         if (owner != null)
+    //         {
+    //             Animator ownerAnimator = owner.GetComponent<Animator>();
+    //             if (AnimatorHasBoolParameter(ownerAnimator, IsAttackHash))
+    //             {
+    //                 attackAnimator = ownerAnimator;
+    //             }
+    //             else
+    //             {
+    //                 Animator[] animators = owner.GetComponentsInChildren<Animator>(true);
+    //                 for (int index = 0; index < animators.Length; index++)
+    //                 {
+    //                     if (AnimatorHasBoolParameter(animators[index], IsAttackHash))
+    //                     {
+    //                         attackAnimator = animators[index];
+    //                         break;
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //         else
+    //         {
+    //             Animator[] animators = GetComponentsInChildren<Animator>(true);
+    //             for (int index = 0; index < animators.Length; index++)
+    //             {
+    //                 if (AnimatorHasBoolParameter(animators[index], IsAttackHash))
+    //                 {
+    //                     attackAnimator = animators[index];
+    //                     break;
+    //                 }
+    //             }
+    //         }
+    //     }
+    //
+    //     attackAnimatorHasIsAttack = AnimatorHasBoolParameter(attackAnimator, IsAttackHash);
+    // }
+
     private void ResolveAttackAnimator()
     {
-        if (attackAnimator == null)
+        validAttackAnimators.Clear();
+        Player owner = Owner;
+        Animator[] animatorsToSearch;
+
+        if (owner != null)
         {
-            Player owner = Owner;
-            if (owner != null)
+            animatorsToSearch = owner.GetComponentsInChildren<Animator>(true);
+        }
+        else
+        {
+            animatorsToSearch = GetComponentsInChildren<Animator>(true);
+        }
+
+        for (int i = 0; i < animatorsToSearch.Length; i++)
+        {
+            if (AnimatorHasBoolParameter(animatorsToSearch[i], IsAttackHash))
             {
-                Animator ownerAnimator = owner.GetComponent<Animator>();
-                if (AnimatorHasBoolParameter(ownerAnimator, IsAttackHash))
-                {
-                    attackAnimator = ownerAnimator;
-                }
-                else
-                {
-                    Animator[] animators = owner.GetComponentsInChildren<Animator>(true);
-                    for (int index = 0; index < animators.Length; index++)
-                    {
-                        if (AnimatorHasBoolParameter(animators[index], IsAttackHash))
-                        {
-                            attackAnimator = animators[index];
-                            break;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                Animator[] animators = GetComponentsInChildren<Animator>(true);
-                for (int index = 0; index < animators.Length; index++)
-                {
-                    if (AnimatorHasBoolParameter(animators[index], IsAttackHash))
-                    {
-                        attackAnimator = animators[index];
-                        break;
-                    }
-                }
+                validAttackAnimators.Add(animatorsToSearch[i]);
             }
         }
-
-        attackAnimatorHasIsAttack = AnimatorHasBoolParameter(attackAnimator, IsAttackHash);
+        
     }
 
-    private void TriggerAttackAnimation()
-    {
-        if (!attackAnimatorHasIsAttack)
-        {
-            return;
-        }
-
-        attackAnimatorTimer = Mathf.Max(attackAnimatorTrueDuration, 0.01f);
-        ApplyAttackAnimation(true);
-    }
-
-    private void UpdateAttackAnimation(float deltaTime)
-    {
-        if (!attackAnimatorHasIsAttack || attackAnimatorTimer <= 0f)
-        {
-            return;
-        }
-
-        attackAnimatorTimer = Mathf.Max(0f, attackAnimatorTimer - Mathf.Max(deltaTime, 0f));
-        if (attackAnimatorTimer <= 0f)
-        {
-            ApplyAttackAnimation(false);
-        }
-    }
+    // private void TriggerAttackAnimation()
+    // {
+    //     if (!attackAnimatorHasIsAttack)
+    //     {
+    //         return;
+    //     }
+    //
+    //     attackAnimatorTimer = Mathf.Max(attackAnimatorTrueDuration, 0.01f);
+    //     ApplyAttackAnimation(true);
+    // }
+    //
+    // private void UpdateAttackAnimation(float deltaTime)
+    // {
+    //     if (!attackAnimatorHasIsAttack || attackAnimatorTimer <= 0f)
+    //     {
+    //         return;
+    //     }
+    //
+    //     attackAnimatorTimer = Mathf.Max(0f, attackAnimatorTimer - Mathf.Max(deltaTime, 0f));
+    //     if (attackAnimatorTimer <= 0f)
+    //     {
+    //         ApplyAttackAnimation(false);
+    //     }
+    // }
+    //
+    // private void ApplyAttackAnimation(bool isAttacking)
+    // {
+    //     if (!attackAnimatorHasIsAttack)
+    //     {
+    //         return;
+    //     }
+    //
+    //     attackAnimator.SetBool(IsAttackHash, isAttacking);
+    // }
 
     private void ApplyAttackAnimation(bool isAttacking)
     {
-        if (!attackAnimatorHasIsAttack)
+        for (int i = 0; i < validAttackAnimators.Count; i++)
         {
-            return;
+            if (validAttackAnimators[i] != null)
+            {
+                validAttackAnimators[i].SetBool(IsAttackHash, isAttacking);
+            }
         }
-
-        attackAnimator.SetBool(IsAttackHash, isAttacking);
     }
+    
 
     public void ApplyRuntimeRewardModifiers(float maxInkBonus, float inkRecoveryNormalizedBonus)
     {
