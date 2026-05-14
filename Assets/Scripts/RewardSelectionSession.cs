@@ -17,20 +17,20 @@ public static class RewardSelectionSession
 
     private sealed class RewardDefinition
     {
-        public RewardDefinition(RewardType type, string displayName, string descriptionFormat, string iconResourcePath, bool requiresBrushWeapon)
+        public RewardDefinition(RewardType type, string displayName, string descriptionFormat, string iconResourcePath, bool requiresInkWeapon)
         {
             Type = type;
             DisplayName = displayName;
             DescriptionFormat = descriptionFormat;
             IconResourcePath = iconResourcePath;
-            RequiresBrushWeapon = requiresBrushWeapon;
+            RequiresInkWeapon = requiresInkWeapon;
         }
 
         public RewardType Type { get; }
         public string DisplayName { get; }
         public string DescriptionFormat { get; }
         public string IconResourcePath { get; }
-        public bool RequiresBrushWeapon { get; }
+        public bool RequiresInkWeapon { get; }
     }
 
     [Serializable]
@@ -39,7 +39,7 @@ public static class RewardSelectionSession
         public float maxHealthBonusPerStack = 20f;
         public float attackPowerPercentBonusPerStack = 20f;
         public float brushInkCapacityBonusPerStack = 4f;
-        public float brushInkRecoveryBonusPerStack = 1.5f;
+        public float brushInkRecoveryBonusPerStack = 0.125f;
         public float moveSpeedBonusPerStack = 0.75f;
 
         public void ClampValues()
@@ -66,7 +66,7 @@ public static class RewardSelectionSession
         { RewardType.MaxHealth, new RewardDefinition(RewardType.MaxHealth, "小熊", "+{0} 最大生命值", "商店道具/生命值-小熊", false) },
         { RewardType.AttackPower, new RewardDefinition(RewardType.AttackPower, "魔爪", "+{0}% 攻击力", "商店道具/攻击力·-魔爪", false) },
         { RewardType.BrushInkCapacity, new RewardDefinition(RewardType.BrushInkCapacity, "颜料桶", "+{0} 颜料容量上限", "商店道具/脑容量最大值-桶", true) },
-        { RewardType.BrushInkRecovery, new RewardDefinition(RewardType.BrushInkRecovery, "枕头", "+{0} 颜料恢复速度", "商店道具/脑容量恢复速度-枕头", true) },
+        { RewardType.BrushInkRecovery, new RewardDefinition(RewardType.BrushInkRecovery, "枕头", "+{0}% 最大颜料/秒", "商店道具/脑容量恢复速度-枕头", true) },
         { RewardType.MoveSpeed, new RewardDefinition(RewardType.MoveSpeed, "哥特风服饰", "+{0} 移动速度", "商店道具/移动速度-裙子", false) }
     };
 
@@ -96,7 +96,8 @@ public static class RewardSelectionSession
     public static List<RewardType> BuildRewardOffers(Player player, int offerCount)
     {
         List<RewardType> candidates = new List<RewardType>(AllRewardTypes.Length);
-        bool hasBrushWeapon = player != null && player.GetComponentInChildren<BrushWeapon>(true) != null;
+        bool hasInkWeapon = player != null &&
+            (player.GetComponentInChildren<BrushWeapon>(true) != null || player.GetComponentInChildren<BowWeapon>(true) != null);
 
         for (int index = 0; index < AllRewardTypes.Length; index++)
         {
@@ -107,7 +108,7 @@ public static class RewardSelectionSession
                 continue;
             }
 
-            if (definition.RequiresBrushWeapon && !hasBrushWeapon)
+            if (definition.RequiresInkWeapon && !hasInkWeapon)
             {
                 continue;
             }
@@ -196,6 +197,18 @@ public static class RewardSelectionSession
 
             brushWeapon.ApplyRuntimeRewardModifiers(GetTotalBrushInkCapacityBonus(), GetTotalBrushInkRecoveryBonus());
         }
+
+        BowWeapon[] bowWeapons = player.GetComponentsInChildren<BowWeapon>(true);
+        for (int index = 0; index < bowWeapons.Length; index++)
+        {
+            BowWeapon bowWeapon = bowWeapons[index];
+            if (bowWeapon == null)
+            {
+                continue;
+            }
+
+            bowWeapon.ApplyRuntimeRewardModifiers(GetTotalBrushInkCapacityBonus(), GetTotalBrushInkRecoveryBonus());
+        }
     }
 
     private static RewardDefinition GetDefinition(RewardType rewardType)
@@ -216,7 +229,7 @@ public static class RewardSelectionSession
             case RewardType.BrushInkCapacity:
                 return config.brushInkCapacityBonusPerStack.ToString("0.0");
             case RewardType.BrushInkRecovery:
-                return config.brushInkRecoveryBonusPerStack.ToString("0.0");
+                return (config.brushInkRecoveryBonusPerStack * 100f).ToString("0.0");
             case RewardType.MoveSpeed:
                 return config.moveSpeedBonusPerStack.ToString("0.0");
             default:

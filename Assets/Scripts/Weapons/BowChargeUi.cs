@@ -20,6 +20,7 @@ public sealed class BowChargeUi : MonoBehaviour
     [SerializeField] private string idleText = "等待自动蓄力";
     [SerializeField] private string chargingText = "自动蓄力中";
     [SerializeField] private string readyText = "蓄力完成";
+    [SerializeField] private string noInkText = "颜料不足";
     [SerializeField] private string cooldownText = "冷却中";
     [SerializeField] private ScreenAnchor screenAnchor = ScreenAnchor.BottomRight;
     [SerializeField, Min(140f)] private float uiWidth = 260f;
@@ -127,6 +128,11 @@ public sealed class BowChargeUi : MonoBehaviour
             return showNumericValue
                 ? $"{cooldownText} {bowWeapon.AttackCooldownRemaining:0.00}s"
                 : cooldownText;
+        }
+
+        if (!bowWeapon.HasUsableInk)
+        {
+            return noInkText;
         }
 
         if (bowWeapon.IsFullyCharged)

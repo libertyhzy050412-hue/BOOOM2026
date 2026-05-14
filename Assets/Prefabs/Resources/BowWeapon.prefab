@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 2721202290180669076}
   - component: {fileID: 7036946373180897376}
   - component: {fileID: 6575554475392951452}
+  - component: {fileID: 4499698680037111474}
   m_Layer: 0
   m_Name: BowWeapon
   m_TagString: Untagged
@@ -50,6 +51,8 @@ MonoBehaviour:
   weaponEnabled: 1
   arrowPrefab: {fileID: 1804553030364989890, guid: b0007776943697f4aacf0a15fc5507eb, type: 3}
   arrowSpawnPoint: {fileID: 2721202290180669076}
+  attackAnimator: {fileID: 0}
+  attackAnimatorTrueDuration: 0.18
   projectileRoot: {fileID: 0}
   projectileRootName: ProjectileRoot
   mapRoot: {fileID: 0}
@@ -57,8 +60,12 @@ MonoBehaviour:
   revealMaskName: WorldRevealMask
   maskPixelsPerUnit: 16
   maxMaskTextureSize: 2048
+  maxInkAmount: 12
+  inkCostPerWorldUnit: 1
+  inkRecoveryDelay: 0.8
+  inkRecoveryNormalizedPerSecond: 0.33333334
   maxChargeDuration: 1.1
-  minimumChargeNormalizedToFire: 0.08
+  legacyMinimumChargeNormalizedToFire: 1
   minArrowDamage: 10
   maxArrowDamage: 24
   minArrowSpeed: 12
@@ -90,6 +97,8 @@ MonoBehaviour:
   chargeLabel: "\u5F13\u7BAD\u84C4\u529B"
   idleText: "\u6309\u4F4F\u653B\u51FB\u5F00\u59CB\u84C4\u529B"
   chargingText: "\u84C4\u529B\u4E2D"
+  readyText: "\u84C4\u529B\u5B8C\u6210"
+  noInkText: "\u989C\u6599\u4E0D\u8DB3"
   cooldownText: "\u51B7\u5374\u4E2D"
   screenAnchor: 2
   uiWidth: 260
@@ -100,4 +109,29 @@ MonoBehaviour:
   fillColor: {r: 0.92, g: 0.67, b: 0.25, a: 1}
   readyLineColor: {r: 0.47, g: 0.79, b: 0.98, a: 0.9}
   thresholdColor: {r: 1, g: 1, b: 1, a: 0.6}
+  textColor: {r: 1, g: 1, b: 1, a: 1}
+--- !u!114 &4499698680037111474
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4016453631583081231}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 985b6203d6449374bbd29a59a7ed9bcd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BowInkUi
+  bowWeapon: {fileID: 0}
+  showWhenWeaponDisabled: 0
+  showNumericValue: 1
+  inkLabel: "\u7BAD\u77E2\u989C\u6599"
+  screenAnchor: 2
+  uiWidth: 240
+  uiHeight: 26
+  screenMarginX: 18
+  screenMarginY: 84
+  backgroundColor: {r: 0, g: 0, b: 0, a: 0.65}
+  fillColor: {r: 0.92, g: 0.67, b: 0.25, a: 1}
+  recoveringFillColor: {r: 0.45, g: 0.9, b: 0.55, a: 1}
   textColor: {r: 1, g: 1, b: 1, a: 1}
