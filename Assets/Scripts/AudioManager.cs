@@ -275,23 +275,15 @@ public sealed class AudioManager : MonoBehaviour
 
     private void EnsureSources()
     {
-        musicSource = EnsureChildSource(musicSource, "MusicSource", true);
-        uiSource = EnsureChildSource(uiSource, "UiSource", false);
-        oneShotSource = EnsureChildSource(oneShotSource, "OneShotSource", false);
-        footstepLoopSource = EnsureChildSource(footstepLoopSource, "FootstepLoopSource", true);
-        brushLoopSource = EnsureChildSource(brushLoopSource, "BrushLoopSource", true);
+        musicSource = EnsureChildSource("MusicSource", true, 16, true);
+        uiSource = EnsureChildSource("UiSource", false, 64, false);
+        oneShotSource = EnsureChildSource("OneShotSource", false, 96, false);
+        footstepLoopSource = EnsureChildSource("FootstepLoopSource", true, 80, false);
+        brushLoopSource = EnsureChildSource("BrushLoopSource", true, 80, false);
     }
 
-    private AudioSource EnsureChildSource(AudioSource source, string childName, bool loop)
+    private AudioSource EnsureChildSource(string childName, bool loop, int priority, bool ignoreListenerPause)
     {
-        if (source != null)
-        {
-            source.playOnAwake = false;
-            source.loop = loop;
-            source.spatialBlend = 0f;
-            return source;
-        }
-
         Transform existingChild = transform.Find(childName);
         GameObject childObject = existingChild != null ? existingChild.gameObject : new GameObject(childName);
         if (existingChild == null)
@@ -299,7 +291,7 @@ public sealed class AudioManager : MonoBehaviour
             childObject.transform.SetParent(transform, false);
         }
 
-        source = childObject.GetComponent<AudioSource>();
+        AudioSource source = childObject.GetComponent<AudioSource>();
         if (source == null)
         {
             source = childObject.AddComponent<AudioSource>();
@@ -308,6 +300,8 @@ public sealed class AudioManager : MonoBehaviour
         source.playOnAwake = false;
         source.loop = loop;
         source.spatialBlend = 0f;
+        source.priority = Mathf.Clamp(priority, 0, 256);
+        source.ignoreListenerPause = ignoreListenerPause;
         return source;
     }
 

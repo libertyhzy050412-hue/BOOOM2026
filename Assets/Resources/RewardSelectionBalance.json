@@ -2,6 +2,6 @@
   "maxHealthBonusPerStack": 20.0,
   "attackPowerPercentBonusPerStack": 20.0,
   "brushInkCapacityBonusPerStack": 4.0,
-  "brushInkRecoveryBonusPerStack": 1.5,
+  "brushInkRecoveryBonusPerStack": 0.125,
   "moveSpeedBonusPerStack": 0.75
 }

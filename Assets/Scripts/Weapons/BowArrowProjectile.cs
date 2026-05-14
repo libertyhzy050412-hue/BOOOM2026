@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -29,12 +30,15 @@ public sealed class BowArrowProjectile : MonoBehaviour
     private int maxMaskTextureSize = 2048;
     private float damageAmount;
     private float remainingLifetime;
+    private float maxTravelDistance = float.PositiveInfinity;
+    private float travelledDistance;
     private float revealRadius;
     private float revealHardness = 0.6f;
     private float moveSpeed;
     private Vector2 moveDirection = Vector2.right;
     private bool launched;
     private bool impactResolved;
+    private Action<float> travelDistanceCallback;
     private ContactFilter2D sweepFilter;
     private readonly RaycastHit2D[] sweepHits = new RaycastHit2D[8];
     private int cachedSortingLayerId;
@@ -80,22 +84,13 @@ public sealed class BowArrowProjectile : MonoBehaviour
         remainingLifetime -= Time.deltaTime;
         if (remainingLifetime <= 0f)
         {
-            Destroy(gameObject);
+            FinishImpact();
             return;
         }
 
         if (cachedRigidbody == null)
         {
-            Vector2 startPosition = transform.position;
-            Vector2 endPosition = startPosition + moveDirection * moveSpeed * Time.deltaTime;
-            if (TryResolveSweepImpact(startPosition, endPosition))
-            {
-                return;
-            }
-
-            RevealTrailSegment(startPosition, endPosition);
-            transform.position = endPosition;
-            UpdateVisualRotation(moveDirection);
+            AdvanceWithoutRigidbody(Time.deltaTime);
         }
     }
 
@@ -106,16 +101,7 @@ public sealed class BowArrowProjectile : MonoBehaviour
             return;
         }
 
-        Vector2 startPosition = cachedRigidbody.position;
-        Vector2 nextPosition = startPosition + moveDirection * moveSpeed * Time.fixedDeltaTime;
-        if (TryResolveSweepImpact(startPosition, nextPosition))
-        {
-            return;
-        }
-
-        RevealTrailSegment(startPosition, nextPosition);
-        cachedRigidbody.MovePosition(nextPosition);
-        UpdateVisualRotation(moveDirection);
+        AdvanceWithRigidbody(Time.fixedDeltaTime);
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -142,13 +128,20 @@ public sealed class BowArrowProjectile : MonoBehaviour
         string preferredMapRootName,
         string preferredRevealMaskName,
         float preferredMaskPixelsPerUnit,
-        int preferredMaxMaskTextureSize)
+        int preferredMaxMaskTextureSize,
+        float maximumTravelDistance,
+        Action<float> onTravelDistance)
     {
         owner = projectileOwner;
         moveDirection = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.right;
         moveSpeed = Mathf.Max(0f, speed);
         damageAmount = Mathf.Max(0f, damage);
         remainingLifetime = Mathf.Max(0.01f, lifetime);
+        maxTravelDistance = maximumTravelDistance > 0f && !float.IsInfinity(maximumTravelDistance)
+            ? maximumTravelDistance
+            : float.PositiveInfinity;
+        travelledDistance = 0f;
+        travelDistanceCallback = onTravelDistance;
         revealRadius = Mathf.Max(0.05f, impactRevealRadius);
         revealHardness = Mathf.Clamp(impactRevealHardness, 0.05f, 0.95f);
         mapRoot = preferredMapRoot;
@@ -263,6 +256,7 @@ public sealed class BowArrowProjectile : MonoBehaviour
             }
 
             RevealTrailSegment(startPosition, impactPoint);
+            RegisterTravelDistance(Vector2.Distance(startPosition, impactPoint));
             ResolveImpact(hit.collider, impactPoint);
             return impactResolved;
         }
@@ -379,6 +373,7 @@ public sealed class BowArrowProjectile : MonoBehaviour
     private void FinishImpact()
     {
         impactResolved = true;
+        launched = false;
         if (cachedRigidbody != null)
         {
             cachedRigidbody.linearVelocity = Vector2.zero;
@@ -386,6 +381,87 @@ public sealed class BowArrowProjectile : MonoBehaviour
         }
 
         Destroy(gameObject);
+    }
+
+    private void AdvanceWithoutRigidbody(float deltaTime)
+    {
+        Vector2 startPosition = transform.position;
+        float stepDistance = GetStepDistance(deltaTime);
+        if (stepDistance <= 0.0001f)
+        {
+            FinishImpact();
+            return;
+        }
+
+        Vector2 endPosition = startPosition + moveDirection * stepDistance;
+        if (TryResolveSweepImpact(startPosition, endPosition))
+        {
+            return;
+        }
+
+        RevealTrailSegment(startPosition, endPosition);
+        RegisterTravelDistance(stepDistance);
+        transform.position = endPosition;
+        UpdateVisualRotation(moveDirection);
+
+        if (HasReachedTravelLimit())
+        {
+            FinishImpact();
+        }
+    }
+
+    private void AdvanceWithRigidbody(float deltaTime)
+    {
+        Vector2 startPosition = cachedRigidbody.position;
+        float stepDistance = GetStepDistance(deltaTime);
+        if (stepDistance <= 0.0001f)
+        {
+            FinishImpact();
+            return;
+        }
+
+        Vector2 nextPosition = startPosition + moveDirection * stepDistance;
+        if (TryResolveSweepImpact(startPosition, nextPosition))
+        {
+            return;
+        }
+
+        RevealTrailSegment(startPosition, nextPosition);
+        RegisterTravelDistance(stepDistance);
+        cachedRigidbody.MovePosition(nextPosition);
+        UpdateVisualRotation(moveDirection);
+
+        if (HasReachedTravelLimit())
+        {
+            FinishImpact();
+        }
+    }
+
+    private float GetStepDistance(float deltaTime)
+    {
+        float requestedDistance = Mathf.Max(0f, moveSpeed * Mathf.Max(deltaTime, 0f));
+        if (float.IsInfinity(maxTravelDistance))
+        {
+            return requestedDistance;
+        }
+
+        return Mathf.Min(requestedDistance, Mathf.Max(0f, maxTravelDistance - travelledDistance));
+    }
+
+    private void RegisterTravelDistance(float segmentDistance)
+    {
+        if (segmentDistance <= 0.0001f)
+        {
+            return;
+        }
+
+        travelledDistance += segmentDistance;
+        travelDistanceCallback?.Invoke(segmentDistance);
+    }
+
+    private bool HasReachedTravelLimit()
+    {
+        return !float.IsInfinity(maxTravelDistance) && travelledDistance >= maxTravelDistance - 0.0001f;
     }
 
     private bool BelongsToOwner(Component other)

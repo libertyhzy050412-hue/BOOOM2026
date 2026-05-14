@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine.Serialization;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -34,7 +35,9 @@ public sealed class BrushWeapon : WeaponBase
     [SerializeField, Min(0.01f)] private float maxInkAmount = 12f;
     [SerializeField, Min(0f)] private float inkCostPerWorldUnit = 1f;
     [SerializeField, Min(0f)] private float inkRecoveryDelay = 0.8f;
-    [SerializeField, Min(0f)] private float inkRecoveryPerSecond = 4f;
+    [FormerlySerializedAs("inkRecoveryPerSecond")]
+    [SerializeField, Min(0f), InspectorName("每秒恢复最大颜料百分比"), Tooltip("按最大颜料值的百分比恢复。0.25 表示每秒恢复最大颜料的 25%。")]
+    private float inkRecoveryNormalizedPerSecond = 0.33333334f;
     [SerializeField, Range(0f, 1f)] private float depletedInkResumeNormalized = 0.12f;
     [SerializeField] private bool enableSummonSpawning = true;
     [SerializeField] private SummonBase summonOnePrefab;
@@ -67,9 +70,10 @@ public sealed class BrushWeapon : WeaponBase
     private float currentInkAmount;
     private float inkRecoveryDelayTimer;
     private bool inkRecoveryActive;
+    [SerializeField, HideInInspector] private bool inkRecoveryValueMigrated;
     private bool rewardBaseStatsCaptured;
     private float rewardBaseMaxInkAmount;
-    private float rewardBaseInkRecoveryPerSecond;
+    private float rewardBaseInkRecoveryNormalizedPerSecond;
 
     public float CurrentInkAmount => currentInkAmount;
     public float MaxInkAmount => maxInkAmount;
@@ -79,6 +83,7 @@ public sealed class BrushWeapon : WeaponBase
     protected override void Awake()
     {
         base.Awake();
+        MigrateLegacyInkRecoveryIfNeeded();
         CacheRewardBaseStatsIfNeeded();
         currentInkAmount = maxInkAmount;
         inkRecoveryDelayTimer = inkRecoveryDelay;
@@ -161,9 +166,27 @@ public sealed class BrushWeapon : WeaponBase
 
             if (stationaryPaintTimer >= stationaryPaintInterval)
             {
-                RevealStamp(pointerPosition, visualRadius);
-                lastPaintPosition = pointerPosition;
-                lastPaintRadius = visualRadius;
+                float requestedPaintDistance = Vector2.Distance(lastPaintPosition, pointerPosition);
+                float allowedPaintDistance = GetAllowedPaintDistance(requestedPaintDistance);
+
+                if (requestedPaintDistance > MinimumInkEpsilon && allowedPaintDistance > MinimumInkEpsilon)
+                {
+                    float paintRatio = Mathf.Clamp01(allowedPaintDistance / requestedPaintDistance);
+                    Vector2 paintedEndPosition = Vector2.Lerp(lastPaintPosition, pointerPosition, paintRatio);
+                    float paintedEndRadius = Mathf.Lerp(lastPaintRadius, visualRadius, paintRatio);
+                    MarkInkUseActive();
+                    RevealStroke(lastPaintPosition, paintedEndPosition, lastPaintRadius, paintedEndRadius);
+                    ConsumeInkForDistance(allowedPaintDistance);
+                    lastPaintPosition = paintedEndPosition;
+                    lastPaintRadius = paintedEndRadius;
+                }
+                else
+                {
+                    RevealStamp(pointerPosition, visualRadius);
+                    lastPaintPosition = pointerPosition;
+                    lastPaintRadius = visualRadius;
+                }
+
                 stationaryPaintTimer = 0f;
             }
         }
@@ -212,6 +235,7 @@ public sealed class BrushWeapon : WeaponBase
 
     private void OnValidate()
     {
+        MigrateLegacyInkRecoveryIfNeeded();
         brushStrength = Mathf.Clamp01(brushStrength);
         brushMinRadius = Mathf.Max(0.05f, brushMinRadius);
         brushMaxRadius = Mathf.Max(brushMinRadius, brushMaxRadius);
@@ -234,7 +258,7 @@ public sealed class BrushWeapon : WeaponBase
         maxInkAmount = Mathf.Max(0.01f, maxInkAmount);
         inkCostPerWorldUnit = Mathf.Max(0f, inkCostPerWorldUnit);
         inkRecoveryDelay = Mathf.Max(0f, inkRecoveryDelay);
-        inkRecoveryPerSecond = Mathf.Max(0f, inkRecoveryPerSecond);
+        inkRecoveryNormalizedPerSecond = Mathf.Max(0f, inkRecoveryNormalizedPerSecond);
         depletedInkResumeNormalized = Mathf.Clamp01(depletedInkResumeNormalized);
         summonSpawnInterval = Mathf.Max(0.01f, summonSpawnInterval);
         maxActiveSummons = Mathf.Max(0, maxActiveSummons);
@@ -254,6 +278,21 @@ public sealed class BrushWeapon : WeaponBase
         }
     }
 
+    private void MigrateLegacyInkRecoveryIfNeeded()
+    {
+        if (inkRecoveryValueMigrated)
+        {
+            return;
+        }
+
+        if (inkRecoveryNormalizedPerSecond > 1f && maxInkAmount > MinimumInkEpsilon)
+        {
+            inkRecoveryNormalizedPerSecond /= maxInkAmount;
+        }
+
+        inkRecoveryValueMigrated = true;
+    }
+
     private void CacheRewardBaseStatsIfNeeded()
     {
         if (rewardBaseStatsCaptured)
@@ -262,7 +301,7 @@ public sealed class BrushWeapon : WeaponBase
         }
 
         rewardBaseMaxInkAmount = maxInkAmount;
-        rewardBaseInkRecoveryPerSecond = inkRecoveryPerSecond;
+        rewardBaseInkRecoveryNormalizedPerSecond = inkRecoveryNormalizedPerSecond;
         rewardBaseStatsCaptured = true;
     }
 
@@ -275,7 +314,7 @@ public sealed class BrushWeapon : WeaponBase
         }
     }
 
-    public void ApplyRuntimeRewardModifiers(float maxInkBonus, float inkRecoveryBonus)
+    public void ApplyRuntimeRewardModifiers(float maxInkBonus, float inkRecoveryNormalizedBonus)
     {
         CacheRewardBaseStatsIfNeeded();
 
@@ -283,7 +322,7 @@ public sealed class BrushWeapon : WeaponBase
         float inkRatio = Mathf.Clamp01(currentInkAmount / previousMaxInkAmount);
 
         maxInkAmount = Mathf.Max(0.01f, rewardBaseMaxInkAmount + maxInkBonus);
-        inkRecoveryPerSecond = Mathf.Max(0f, rewardBaseInkRecoveryPerSecond + inkRecoveryBonus);
+        inkRecoveryNormalizedPerSecond = Mathf.Max(0f, rewardBaseInkRecoveryNormalizedPerSecond + inkRecoveryNormalizedBonus);
         currentInkAmount = Mathf.Clamp(maxInkAmount * inkRatio, 0f, maxInkAmount);
     }
 
@@ -437,7 +476,7 @@ public sealed class BrushWeapon : WeaponBase
             return;
         }
 
-        currentInkAmount = Mathf.Min(maxInkAmount, currentInkAmount + inkRecoveryPerSecond * deltaTime);
+        currentInkAmount = Mathf.Min(maxInkAmount, currentInkAmount + maxInkAmount * inkRecoveryNormalizedPerSecond * deltaTime);
         if (currentInkAmount >= maxInkAmount - MinimumInkEpsilon)
         {
             currentInkAmount = maxInkAmount;

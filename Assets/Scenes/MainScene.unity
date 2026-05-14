@@ -301,6 +301,7 @@ GameObject:
   - component: {fileID: 1105370559}
   - component: {fileID: 1105370560}
   - component: {fileID: 1105370561}
+  - component: {fileID: 1105370562}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -412,6 +413,8 @@ MonoBehaviour:
   autoStartOnPlay: 1
   initializeGameOnStart: 1
   startMenuSceneName: StartScene
+  victoryResultSceneName: StartScene
+  failureResultSceneName: StartScene
   waveDefinitions:
   - name: Wave 1
     durationSeconds: 60
@@ -471,13 +474,37 @@ MonoBehaviour:
   levelManager: {fileID: 0}
   settingsButtonWidth: 92
   settingsButtonHeight: 38
-  menuWidth: 320
-  menuHeight: 220
+  menuWidth: 360
+  menuHeight: 300
   screenMargin: 16
   settingsButtonText: "\u8BBE\u7F6E"
   resumeButtonText: "\u7EE7\u7EED\u6E38\u620F"
   returnButtonText: "\u8FD4\u56DE\u5F00\u59CB\u754C\u9762"
   allowEscapeShortcut: 1
+--- !u!114 &1105370562
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1105370555}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56a30214f71889141b92ff29e0dc4fbc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InnerWorldEnemyEffectController
+  effectEnabled: 1
+  createRevealMaskControllerIfMissing: 1
+  evaluationInterval: 0.1
+  revealAlphaThreshold: 0.05
+  sampleWorldOffset: {x: 0, y: 0}
+  surroundingSampleRadius: 0.95
+  surroundingSampleCount: 8
+  dealDamageOverTime: 1
+  damagePerHit: 2
+  damageInterval: 0.5
+  modifyMoveSpeed: 1
+  moveSpeedMultiplier: 0.6
 --- !u!1 &1938352905
 GameObject:
   m_ObjectHideFlags: 0

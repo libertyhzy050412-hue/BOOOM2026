@@ -5,6 +5,7 @@ using UnityEngine;
 public sealed class BowWeapon : WeaponBase
 {
     private const float FullChargeNormalizedToFire = 0.999f;
+    private const float MinimumInkEpsilon = 0.0001f;
     private static readonly int IsAttackHash = Animator.StringToHash("IsAttack");
 
     [SerializeField] private BowArrowProjectile arrowPrefab;
@@ -18,6 +19,13 @@ public sealed class BowWeapon : WeaponBase
     [SerializeField] private string revealMaskName = "WorldRevealMask";
     [SerializeField, Range(1f, 64f)] private float maskPixelsPerUnit = 16f;
     [SerializeField, Min(256)] private int maxMaskTextureSize = 2048;
+
+    [Header("颜料设置")]
+    [SerializeField, Min(0.01f)] private float maxInkAmount = 12f;
+    [SerializeField, Min(0f)] private float inkCostPerWorldUnit = 1f;
+    [SerializeField, Min(0f)] private float inkRecoveryDelay = 0.8f;
+    [SerializeField, Min(0f), InspectorName("每秒恢复最大颜料百分比"), Tooltip("按最大颜料值的百分比恢复。0.25 表示每秒恢复最大颜料的 25%。")]
+    private float inkRecoveryNormalizedPerSecond = 0.33333334f;
 
     [Header("蓄力设置")]
     [SerializeField, Min(0.05f)] private float maxChargeDuration = 1.1f;
@@ -44,10 +52,16 @@ public sealed class BowWeapon : WeaponBase
     private float currentChargeTime;
     private float fireCooldownTimer;
     private float attackAnimatorTimer;
+    private float currentInkAmount;
+    private float inkRecoveryDelayTimer;
     private bool wasPrimaryUseHeld;
     private bool hasLoggedMissingCamera;
     private bool attackAnimatorHasIsAttack;
+    private bool inkRecoveryActive;
+    private bool rewardBaseInkStatsCaptured;
     private Vector2 lastAimDirection = Vector2.right;
+    private float rewardBaseMaxInkAmount;
+    private float rewardBaseInkRecoveryNormalizedPerSecond;
 
     public float ChargeNormalized => Mathf.Clamp01(currentChargeTime / Mathf.Max(maxChargeDuration, 0.0001f));
     public float MinimumChargeNormalizedToFire => 1f;
@@ -55,10 +69,19 @@ public sealed class BowWeapon : WeaponBase
     public bool IsInAttackCooldown => fireCooldownTimer > 0.0001f;
     public bool IsFullyCharged => !IsInAttackCooldown && ChargeNormalized >= FullChargeNormalizedToFire;
     public bool IsCharging => !IsInAttackCooldown && !IsFullyCharged;
+    public float CurrentInkAmount => currentInkAmount;
+    public float MaxInkAmount => maxInkAmount;
+    public float NormalizedInkAmount => maxInkAmount <= MinimumInkEpsilon ? 0f : Mathf.Clamp01(currentInkAmount / maxInkAmount);
+    public bool InkRecoveryActive => inkRecoveryActive;
+    public bool HasUsableInk => inkCostPerWorldUnit <= MinimumInkEpsilon || currentInkAmount > MinimumInkEpsilon;
 
     protected override void Awake()
     {
         base.Awake();
+        CacheInkBaseStatsIfNeeded();
+        currentInkAmount = maxInkAmount;
+        inkRecoveryDelayTimer = inkRecoveryDelay;
+        inkRecoveryActive = false;
         ResolveMapRoot();
         ResolveAttackAnimator();
         ApplyAttackAnimation(false);
@@ -68,6 +91,7 @@ public sealed class BowWeapon : WeaponBase
     {
         ResolveAttackAnimator();
         UpdateAttackAnimation(deltaTime);
+        UpdateInkRecovery(deltaTime);
         fireCooldownTimer = Mathf.Max(0f, fireCooldownTimer - deltaTime);
 
         if (TryGetPointerWorldPosition(out Vector3 pointerPosition))
@@ -126,6 +150,10 @@ public sealed class BowWeapon : WeaponBase
     {
         maskPixelsPerUnit = Mathf.Clamp(maskPixelsPerUnit, 1f, 64f);
         maxMaskTextureSize = Mathf.Clamp(maxMaskTextureSize, 256, 4096);
+        maxInkAmount = Mathf.Max(0.01f, maxInkAmount);
+        inkCostPerWorldUnit = Mathf.Max(0f, inkCostPerWorldUnit);
+        inkRecoveryDelay = Mathf.Max(0f, inkRecoveryDelay);
+        inkRecoveryNormalizedPerSecond = Mathf.Max(0f, inkRecoveryNormalizedPerSecond);
         maxChargeDuration = Mathf.Max(0.05f, maxChargeDuration);
         attackAnimatorTrueDuration = Mathf.Max(0.01f, attackAnimatorTrueDuration);
         legacyMinimumChargeNormalizedToFire = 1f;
@@ -138,6 +166,12 @@ public sealed class BowWeapon : WeaponBase
         maxRevealRadius = Mathf.Max(minRevealRadius, maxRevealRadius);
         revealHardness = Mathf.Clamp(revealHardness, 0.05f, 0.95f);
         attackCooldownSeconds = Mathf.Max(0f, attackCooldownSeconds);
+
+        if (Application.isPlaying)
+        {
+            currentInkAmount = Mathf.Clamp(currentInkAmount, 0f, maxInkAmount);
+            inkRecoveryDelayTimer = Mathf.Max(0f, inkRecoveryDelayTimer);
+        }
     }
 
     private void UpdateAim(Vector3 pointerPosition)
@@ -171,6 +205,12 @@ public sealed class BowWeapon : WeaponBase
             return;
         }
 
+        float maxTravelDistance = GetAvailableTravelDistance();
+        if (maxTravelDistance <= MinimumInkEpsilon)
+        {
+            return;
+        }
+
         Vector2 fireDirection = lastAimDirection.sqrMagnitude > 0.0001f ? lastAimDirection.normalized : Vector2.right;
         Transform spawnReference = arrowSpawnPoint != null ? arrowSpawnPoint : transform;
         Vector3 spawnPosition = spawnReference.position;
@@ -190,7 +230,9 @@ public sealed class BowWeapon : WeaponBase
             mapRootName,
             revealMaskName,
             maskPixelsPerUnit,
-            maxMaskTextureSize);
+            maxMaskTextureSize,
+            maxTravelDistance,
+            ConsumeInkForDistance);
         fireCooldownTimer = attackCooldownSeconds;
         currentChargeTime = 0f;
     }
@@ -270,6 +312,88 @@ public sealed class BowWeapon : WeaponBase
         }
 
         attackAnimator.SetBool(IsAttackHash, isAttacking);
+    }
+
+    public void ApplyRuntimeRewardModifiers(float maxInkBonus, float inkRecoveryNormalizedBonus)
+    {
+        CacheInkBaseStatsIfNeeded();
+
+        float previousMaxInkAmount = Mathf.Max(maxInkAmount, MinimumInkEpsilon);
+        float inkRatio = Mathf.Clamp01(currentInkAmount / previousMaxInkAmount);
+
+        maxInkAmount = Mathf.Max(0.01f, rewardBaseMaxInkAmount + maxInkBonus);
+        inkRecoveryNormalizedPerSecond = Mathf.Max(0f, rewardBaseInkRecoveryNormalizedPerSecond + inkRecoveryNormalizedBonus);
+        currentInkAmount = Mathf.Clamp(maxInkAmount * inkRatio, 0f, maxInkAmount);
+    }
+
+    private void CacheInkBaseStatsIfNeeded()
+    {
+        if (rewardBaseInkStatsCaptured)
+        {
+            return;
+        }
+
+        rewardBaseMaxInkAmount = maxInkAmount;
+        rewardBaseInkRecoveryNormalizedPerSecond = inkRecoveryNormalizedPerSecond;
+        rewardBaseInkStatsCaptured = true;
+    }
+
+    private void UpdateInkRecovery(float deltaTime)
+    {
+        if (currentInkAmount < maxInkAmount - MinimumInkEpsilon)
+        {
+            inkRecoveryActive = true;
+        }
+
+        if (!inkRecoveryActive)
+        {
+            inkRecoveryDelayTimer = inkRecoveryDelay;
+            return;
+        }
+
+        if (currentInkAmount >= maxInkAmount - MinimumInkEpsilon)
+        {
+            currentInkAmount = maxInkAmount;
+            inkRecoveryActive = false;
+            inkRecoveryDelayTimer = inkRecoveryDelay;
+            return;
+        }
+
+        if (inkRecoveryDelayTimer > 0f)
+        {
+            inkRecoveryDelayTimer = Mathf.Max(0f, inkRecoveryDelayTimer - deltaTime);
+            return;
+        }
+
+        currentInkAmount = Mathf.Min(maxInkAmount, currentInkAmount + maxInkAmount * inkRecoveryNormalizedPerSecond * deltaTime);
+        if (currentInkAmount >= maxInkAmount - MinimumInkEpsilon)
+        {
+            currentInkAmount = maxInkAmount;
+            inkRecoveryActive = false;
+            inkRecoveryDelayTimer = inkRecoveryDelay;
+        }
+    }
+
+    private void ConsumeInkForDistance(float travelledDistance)
+    {
+        if (travelledDistance <= MinimumInkEpsilon || inkCostPerWorldUnit <= MinimumInkEpsilon)
+        {
+            return;
+        }
+
+        currentInkAmount = Mathf.Max(0f, currentInkAmount - travelledDistance * inkCostPerWorldUnit);
+        inkRecoveryActive = true;
+        inkRecoveryDelayTimer = inkRecoveryDelay;
+    }
+
+    private float GetAvailableTravelDistance()
+    {
+        if (inkCostPerWorldUnit <= MinimumInkEpsilon)
+        {
+            return float.PositiveInfinity;
+        }
+
+        return currentInkAmount / inkCostPerWorldUnit;
     }
 
     private static bool AnimatorHasBoolParameter(Animator animator, int parameterHash)
