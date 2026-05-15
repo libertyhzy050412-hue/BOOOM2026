@@ -5,6 +5,12 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class BrushWeapon : WeaponBase
 {
+    
+    //动画
+    [Header("动画替换")]
+    [SerializeField] private RuntimeAnimatorController brushAnimatorOverride; 
+    
+    
     private const float MinimumInkEpsilon = 0.0001f;
 
     [SerializeField] private Transform mapRoot;
@@ -95,6 +101,26 @@ public sealed class BrushWeapon : WeaponBase
         UpdateBrushVisualScale(EvaluateEffectiveMaxRadius());
         UpdateRangeIndicatorVisibility(false, false);
     }
+    
+    
+    protected override void OnOwnerChanged()
+    {
+        base.OnOwnerChanged();
+        ApplyBrushAnimation();
+    }
+
+    private void ApplyBrushAnimation()
+    {
+        if (Owner == null || brushAnimatorOverride == null) return;
+
+        // 获取玩家身上的 Animator
+        Animator playerAnimator = Owner.GetComponentInChildren<Animator>();
+        if (playerAnimator != null)
+        {
+            playerAnimator.runtimeAnimatorController = brushAnimatorOverride;
+        }
+    }
+    
 
     protected override void Tick(float deltaTime)
     {

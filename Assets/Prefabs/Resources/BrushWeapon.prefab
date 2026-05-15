@@ -48,6 +48,7 @@ MonoBehaviour:
   owner: {fileID: 0}
   inputCamera: {fileID: 0}
   weaponEnabled: 1
+  brushAnimatorOverride: {fileID: 22100000, guid: bb997892a1b12a5418c1f41ca4c1422d, type: 2}
   mapRoot: {fileID: 0}
   mapRootName: MapRoot
   revealMaskName: WorldRevealMask
@@ -76,7 +77,7 @@ MonoBehaviour:
   maxInkAmount: 30
   inkCostPerWorldUnit: 1
   inkRecoveryDelay: 1
-  inkRecoveryNormalizedPerSecond: 100
+  inkRecoveryNormalizedPerSecond: 0.3333
   depletedInkResumeNormalized: 0.12
   enableSummonSpawning: 1
   summonOnePrefab: {fileID: 804503144097626695, guid: 76d1daf117459ce4b801aa7687a59d54, type: 3}

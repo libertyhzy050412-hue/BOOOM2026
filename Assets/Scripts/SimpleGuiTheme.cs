@@ -8,7 +8,7 @@ public static class SimpleGuiTheme
     public static readonly Color PanelFillColor = new Color(0.11f, 0.15f, 0.2f, 0.94f);
     public static readonly Color PanelFillLightColor = new Color(0.15f, 0.2f, 0.26f, 0.96f);
     public static readonly Color PanelOutlineColor = new Color(0.98f, 0.82f, 0.46f, 0.3f);
-    public static readonly Color AccentColor = new Color(0.95f, 0.78f, 0.34f, 1f);
+    public static readonly Color AccentColor = new Color32(247, 202, 232, 255);
     public static readonly Color AccentMutedColor = new Color(0.73f, 0.82f, 0.93f, 1f);
     public static readonly Color TextPrimaryColor = new Color(0.96f, 0.97f, 0.98f, 1f);
     public static readonly Color TextSecondaryColor = new Color(0.77f, 0.83f, 0.9f, 1f);

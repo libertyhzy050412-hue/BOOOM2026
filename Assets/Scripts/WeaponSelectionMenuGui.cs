@@ -60,7 +60,9 @@ public sealed class WeaponSelectionMenuGui : MonoBehaviour
         Rect headerRect = new Rect(contentRect.x, contentRect.y, contentRect.width, headerHeight);
 
         GUI.Label(new Rect(headerRect.x, headerRect.y, headerRect.width, SimpleGuiTheme.Scale(34f)), title, titleStyle);
-        GUI.Label(new Rect(headerRect.x, headerRect.y + SimpleGuiTheme.Scale(40f), headerRect.width, SimpleGuiTheme.Scale(40f)), subtitle, subtitleStyle);
+        GUI.Label(
+            new Rect(headerRect.x, headerRect.y + SimpleGuiTheme.Scale(40f), headerRect.width,
+                SimpleGuiTheme.Scale(40f)), subtitle, subtitleStyle);
 
         float footerHeight = showBackButton ? SimpleGuiTheme.Scale(48f) : 0f;
         float footerSpacing = showBackButton ? SimpleGuiTheme.Scale(16f) : 0f;
@@ -74,7 +76,8 @@ public sealed class WeaponSelectionMenuGui : MonoBehaviour
 
         if (showBackButton)
         {
-            Rect backRect = new Rect(contentRect.x, contentRect.yMax - footerHeight, Mathf.Min(contentRect.width, SimpleGuiTheme.Scale(230f)), footerHeight);
+            Rect backRect = new Rect(contentRect.x, contentRect.yMax - footerHeight,
+                Mathf.Min(contentRect.width, SimpleGuiTheme.Scale(230f)), footerHeight);
             if (GuiAudioButton.Button("WeaponSelection/Back", backRect, backButtonText, backButtonStyle))
             {
                 ReturnToStartScene();
@@ -88,7 +91,8 @@ public sealed class WeaponSelectionMenuGui : MonoBehaviour
         if (visibleOptions.Count == 0)
         {
             SimpleGuiTheme.DrawPanel(rect, new Color(0.1f, 0.14f, 0.18f, 0.9f));
-            GUI.Label(SimpleGuiTheme.Inset(rect, SimpleGuiTheme.Scale(24f), SimpleGuiTheme.Scale(24f)), "当前没有可选武器，请先在 Inspector 里配置 weaponOptions。", descriptionStyle);
+            GUI.Label(SimpleGuiTheme.Inset(rect, SimpleGuiTheme.Scale(24f), SimpleGuiTheme.Scale(24f)),
+                "当前没有可选武器，请先在 Inspector 里配置 weaponOptions。", descriptionStyle);
             return;
         }
 
@@ -133,7 +137,8 @@ public sealed class WeaponSelectionMenuGui : MonoBehaviour
         float statusHeight = SimpleGuiTheme.Scale(22f);
 
         Rect titleRect = new Rect(contentRect.x, contentRect.y, contentRect.width * 0.7f, titleHeight);
-        Rect statusRect = new Rect(contentRect.x + contentRect.width * 0.52f, contentRect.y + SimpleGuiTheme.Scale(4f), contentRect.width * 0.48f, statusHeight);
+        Rect statusRect = new Rect(contentRect.x + contentRect.width * 0.52f, contentRect.y + SimpleGuiTheme.Scale(4f),
+            contentRect.width * 0.48f, statusHeight);
         Rect buttonRect = new Rect(contentRect.x, contentRect.yMax - buttonHeight, contentRect.width, buttonHeight);
         Rect descriptionRect = new Rect(
             contentRect.x,
@@ -143,11 +148,15 @@ public sealed class WeaponSelectionMenuGui : MonoBehaviour
 
         GUI.Label(titleRect, weaponOption.displayName, cardTitleStyle);
         GUI.Label(statusRect, isSelectable ? "可选择" : "未配置预制体", isSelectable ? readyStateStyle : missingStateStyle);
-        GUI.Label(descriptionRect, string.IsNullOrWhiteSpace(weaponOption.description) ? "暂无描述。" : weaponOption.description, cardDescriptionStyle);
+        GUI.Label(descriptionRect,
+            string.IsNullOrWhiteSpace(weaponOption.description) ? "暂无描述。" : weaponOption.description,
+            cardDescriptionStyle);
 
         bool previousEnabled = GUI.enabled;
         GUI.enabled = isSelectable;
-        if (GuiAudioButton.Button($"WeaponSelection/Option/{weaponOption.id}", buttonRect, isSelectable ? $"选择 {weaponOption.displayName}" : "尚未配置", isSelectable ? optionButtonStyle : disabledOptionButtonStyle, isSelectable))
+        if (GuiAudioButton.Button($"WeaponSelection/Option/{weaponOption.id}", buttonRect,
+                isSelectable ? $"选择 {weaponOption.displayName}" : "尚未配置",
+                isSelectable ? optionButtonStyle : disabledOptionButtonStyle, isSelectable))
         {
             SelectWeapon(weaponOption);
         }
@@ -218,20 +227,27 @@ public sealed class WeaponSelectionMenuGui : MonoBehaviour
 
         lastLayoutSignature = layoutSignature;
 
-        titleStyle = SimpleGuiTheme.CreateLabelStyle(30, FontStyle.Bold, TextAnchor.UpperLeft, SimpleGuiTheme.TextPrimaryColor, true);
-        subtitleStyle = SimpleGuiTheme.CreateLabelStyle(18, FontStyle.Normal, TextAnchor.UpperLeft, SimpleGuiTheme.TextSecondaryColor, true);
-        cardTitleStyle = SimpleGuiTheme.CreateLabelStyle(22, FontStyle.Bold, TextAnchor.UpperLeft, SimpleGuiTheme.TextPrimaryColor, true);
-        cardDescriptionStyle = SimpleGuiTheme.CreateLabelStyle(16, FontStyle.Normal, TextAnchor.UpperLeft, SimpleGuiTheme.TextSecondaryColor, true);
-        descriptionStyle = SimpleGuiTheme.CreateLabelStyle(18, FontStyle.Normal, TextAnchor.MiddleCenter, SimpleGuiTheme.TextSecondaryColor, true);
-        readyStateStyle = SimpleGuiTheme.CreateLabelStyle(14, FontStyle.Bold, TextAnchor.UpperRight, SimpleGuiTheme.SuccessColor, false);
-        missingStateStyle = SimpleGuiTheme.CreateLabelStyle(14, FontStyle.Bold, TextAnchor.UpperRight, SimpleGuiTheme.DangerColor, false);
+        titleStyle = SimpleGuiTheme.CreateLabelStyle(30, FontStyle.Bold, TextAnchor.UpperLeft,
+            SimpleGuiTheme.TextPrimaryColor, true);
+        subtitleStyle = SimpleGuiTheme.CreateLabelStyle(18, FontStyle.Normal, TextAnchor.UpperLeft,
+            SimpleGuiTheme.TextSecondaryColor, true);
+        cardTitleStyle = SimpleGuiTheme.CreateLabelStyle(22, FontStyle.Bold, TextAnchor.UpperLeft,
+            SimpleGuiTheme.TextPrimaryColor, true);
+        cardDescriptionStyle = SimpleGuiTheme.CreateLabelStyle(16, FontStyle.Normal, TextAnchor.UpperLeft,
+            SimpleGuiTheme.TextSecondaryColor, true);
+        descriptionStyle = SimpleGuiTheme.CreateLabelStyle(18, FontStyle.Normal, TextAnchor.MiddleCenter,
+            SimpleGuiTheme.TextSecondaryColor, true);
+        readyStateStyle = SimpleGuiTheme.CreateLabelStyle(14, FontStyle.Bold, TextAnchor.UpperRight,
+            SimpleGuiTheme.SuccessColor, false);
+        missingStateStyle = SimpleGuiTheme.CreateLabelStyle(14, FontStyle.Bold, TextAnchor.UpperRight,
+            SimpleGuiTheme.DangerColor, false);
 
         optionButtonStyle = SimpleGuiTheme.CreateButtonStyle(
             17,
-            new Color(0.92f, 0.75f, 0.32f, 1f),
-            new Color(0.97f, 0.81f, 0.4f, 1f),
-            new Color(0.84f, 0.65f, 0.24f, 1f),
-            new Color(0.08f, 0.1f, 0.12f, 1f));
+            new Color32(226, 172, 208, 255),
+            new Color32(226, 172, 208, 255),
+            new Color32(226, 172, 208, 255),
+            new Color32(66, 22, 52, 255));
 
         disabledOptionButtonStyle = SimpleGuiTheme.CreateButtonStyle(
             17,
@@ -242,10 +258,10 @@ public sealed class WeaponSelectionMenuGui : MonoBehaviour
 
         backButtonStyle = SimpleGuiTheme.CreateButtonStyle(
             16,
-            new Color(0.2f, 0.27f, 0.34f, 1f),
-            new Color(0.25f, 0.33f, 0.41f, 1f),
+            new Color32(226, 172, 208, 255),
+            new Color32(226, 172, 208, 255),
             new Color(0.15f, 0.21f, 0.28f, 1f),
-            SimpleGuiTheme.TextPrimaryColor);
+            new Color32(66, 22, 52, 255));
     }
 
     private void OnValidate()
