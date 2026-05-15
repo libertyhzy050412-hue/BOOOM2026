@@ -339,7 +339,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 21ef7d171f2e5ca4ab03d839e73a1cb3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AudioManager
-  startMenuMusic: {fileID: 8300000, guid: 1e930c667fef9694998b186736ee036c, type: 3}
+  startMenuMusic: {fileID: 8300000, guid: b9f30d8a7baa9cc4ea0a675e3a8d7981, type: 3}
   battleMusic: {fileID: 8300000, guid: 38a5edb570fc1ba4db8da169c8375802, type: 3}
   uiHoverSound: {fileID: 8300000, guid: f879a62872107144f94989b065f22ac7, type: 3}
   uiClickSound: {fileID: 8300000, guid: 28aa1c9c8081a334197b5e504b9241b3, type: 3}
