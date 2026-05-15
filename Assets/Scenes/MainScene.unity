@@ -412,9 +412,9 @@ MonoBehaviour:
   targetPlayer: {fileID: 0}
   autoStartOnPlay: 1
   initializeGameOnStart: 1
-  startMenuSceneName: StartScene
-  victoryResultSceneName: StartScene
-  failureResultSceneName: StartScene
+  startMenuSceneName: OpenMenu
+  victoryResultSceneName: OpenMenu
+  failureResultSceneName: OpenMenu
   waveDefinitions:
   - name: Wave 1
     durationSeconds: 60

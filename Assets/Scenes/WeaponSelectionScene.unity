@@ -243,7 +243,7 @@ MonoBehaviour:
   title: "\u9009\u62E9\u6B66\u5668"
   subtitle: "\u9009\u62E9\u4E00\u4E2A\u672C\u5C40\u8981\u4F7F\u7528\u7684\u6B66\u5668"
   mainSceneName: MainScene
-  startSceneName: StartScene
+  startSceneName: OpenMenu
   showBackButton: 1
   backButtonText: "\u8FD4\u56DE\u5F00\u59CB\u754C\u9762"
   weaponOptions:

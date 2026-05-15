@@ -45,13 +45,13 @@ public sealed class LevelManager : MonoBehaviour
     [SerializeField] private Player targetPlayer;
     [SerializeField] private bool autoStartOnPlay = true;
     [SerializeField] private bool initializeGameOnStart = true;
-    [SerializeField] private string startMenuSceneName = "StartScene";
+    [SerializeField] private string startMenuSceneName = "OpenMenu";
 
     [Header("Result Scene Routing")]
     [SerializeField, InspectorName("胜利后跳转场景"), Tooltip("最后一波胜利后按确认键要进入的场景名称。需要已加入 Build Profiles。")]
-    private string victoryResultSceneName = "StartScene";
+    private string victoryResultSceneName = "OpenMenu";
     [SerializeField, InspectorName("失败后跳转场景"), Tooltip("玩家失败后按确认键要进入的场景名称。需要已加入 Build Profiles。")]
-    private string failureResultSceneName = "StartScene";
+    private string failureResultSceneName = "OpenMenu";
 
     [Header("Wave Settings")]
     [SerializeField] private List<WaveDefinition> waveDefinitions = CreateDefaultWaveDefinitions();
