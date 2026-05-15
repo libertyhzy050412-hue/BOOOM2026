@@ -14,7 +14,6 @@ public sealed class LevelTestGui : MonoBehaviour
     private static readonly Color RewardStatTextColor = CreateColor(184, 177, 208);
     private static readonly Color RewardStackTextColor = CreateColor(219, 169, 208);
     private static readonly Color RewardButtonTextColor = CreateColor(44, 32, 52);
-    private static readonly Color RewardIconTintColor = CreateColor(229, 188, 223);
 
     [Header("Temporary Test HUD")]
     [SerializeField] private LevelManager levelManager;
@@ -287,7 +286,41 @@ public sealed class LevelTestGui : MonoBehaviour
             return;
         }
 
-        SimpleGuiTheme.DrawSprite(icon, rect, RewardIconTintColor);
+        SimpleGuiTheme.DrawSprite(icon, GetAspectFitRect(icon, rect), Color.white);
+    }
+
+    private static Rect GetAspectFitRect(Sprite sprite, Rect containerRect)
+    {
+        if (sprite == null)
+        {
+            return containerRect;
+        }
+
+        Rect textureRect = sprite.textureRect;
+        if (textureRect.width <= 0f || textureRect.height <= 0f || containerRect.width <= 0f || containerRect.height <= 0f)
+        {
+            return containerRect;
+        }
+
+        float spriteAspect = textureRect.width / textureRect.height;
+        float containerAspect = containerRect.width / containerRect.height;
+        float drawWidth = containerRect.width;
+        float drawHeight = containerRect.height;
+
+        if (spriteAspect > containerAspect)
+        {
+            drawHeight = drawWidth / spriteAspect;
+        }
+        else
+        {
+            drawWidth = drawHeight * spriteAspect;
+        }
+
+        return new Rect(
+            containerRect.x + (containerRect.width - drawWidth) * 0.5f,
+            containerRect.y + (containerRect.height - drawHeight) * 0.5f,
+            drawWidth,
+            drawHeight);
     }
 
     private void DrawRewardSurface(Rect rect, Color fillColor, Color outlineColor, bool drawTopAccent)
