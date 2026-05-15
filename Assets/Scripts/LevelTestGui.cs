@@ -362,10 +362,10 @@ public sealed class LevelTestGui : MonoBehaviour
         popupMetaStyle = SimpleGuiTheme.CreateLabelStyle(17, FontStyle.Bold, TextAnchor.UpperLeft, SimpleGuiTheme.AccentMutedColor, false);
         popupButtonStyle = SimpleGuiTheme.CreateButtonStyle(
             18,
-            new Color(0.92f, 0.75f, 0.32f, 1f),
-            new Color(0.97f, 0.81f, 0.4f, 1f),
-            new Color(0.84f, 0.65f, 0.24f, 1f),
-            new Color(0.08f, 0.1f, 0.12f, 1f));
+            new Color32(226, 172, 208, 255),
+            new Color32(226, 172, 208, 255),
+            new Color32(226, 172, 208, 255),
+            new Color32(66, 22, 52, 255));
 
         rewardTitleStyle = SimpleGuiTheme.CreateLabelStyle(28, FontStyle.Bold, TextAnchor.UpperCenter, SimpleGuiTheme.TextPrimaryColor, true);
         rewardSubtitleStyle = SimpleGuiTheme.CreateLabelStyle(16, FontStyle.Normal, TextAnchor.UpperCenter, SimpleGuiTheme.TextSecondaryColor, true);
@@ -374,10 +374,10 @@ public sealed class LevelTestGui : MonoBehaviour
         rewardStackStyle = SimpleGuiTheme.CreateLabelStyle(14, FontStyle.Bold, TextAnchor.UpperCenter, SimpleGuiTheme.AccentColor, false);
         rewardButtonStyle = SimpleGuiTheme.CreateButtonStyle(
             17,
-            new Color(0.92f, 0.75f, 0.32f, 1f),
-            new Color(0.97f, 0.81f, 0.4f, 1f),
-            new Color(0.84f, 0.65f, 0.24f, 1f),
-            new Color(0.08f, 0.1f, 0.12f, 1f));
+            new Color32(226, 172, 208, 255),
+            new Color32(226, 172, 208, 255),
+            new Color32(226, 172, 208, 255),
+            new Color32(66, 22, 52, 255));
         rewardMissingIconStyle = SimpleGuiTheme.CreateLabelStyle(13, FontStyle.Bold, TextAnchor.MiddleCenter, SimpleGuiTheme.TextSecondaryColor, true);
     }
 
