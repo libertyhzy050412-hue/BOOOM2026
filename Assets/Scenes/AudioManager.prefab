@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2352408440696845764
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4608019343824801243}
+  - component: {fileID: 4726808144911831188}
+  m_Layer: 0
+  m_Name: AudioManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4608019343824801243
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2352408440696845764}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.58789, y: 0.01422, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4726808144911831188
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2352408440696845764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21ef7d171f2e5ca4ab03d839e73a1cb3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AudioManager
+  startMenuMusic: {fileID: 8300000, guid: b9f30d8a7baa9cc4ea0a675e3a8d7981, type: 3}
+  battleMusic: {fileID: 8300000, guid: 38a5edb570fc1ba4db8da169c8375802, type: 3}
+  uiHoverSound: {fileID: 8300000, guid: f879a62872107144f94989b065f22ac7, type: 3}
+  uiClickSound: {fileID: 8300000, guid: 28aa1c9c8081a334197b5e504b9241b3, type: 3}
+  playerFootstepLoop: {fileID: 8300000, guid: 9bb741d4701b23b44898966e10965ec3, type: 3}
+  brushAttackLoop: {fileID: 8300000, guid: 3843aa01e439126499abe35c522beacf, type: 3}
+  bowShootSound: {fileID: 8300000, guid: 65f57073d15f03a4d82bee5021fa7810, type: 3}
+  bowImpactSound: {fileID: 8300000, guid: bca042a943f864d41b1f7954b4372185, type: 3}
+  playerHurtSound: {fileID: 8300000, guid: c8e37211642db4642a5f0ae43ee4d41f, type: 3}
+  musicVolume: 0.8
+  uiSoundVolume: 1
+  combatSoundVolume: 1
+  loopSoundVolume: 0.85

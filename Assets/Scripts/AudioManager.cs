@@ -1,5 +1,9 @@
 using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 [DefaultExecutionOrder(-300)]
 [DisallowMultipleComponent]
 public sealed class AudioManager : MonoBehaviour
@@ -275,11 +279,28 @@ public sealed class AudioManager : MonoBehaviour
 
     private void EnsureSources()
     {
+        if (!CanEnsureSources())
+        {
+            return;
+        }
+
         musicSource = EnsureChildSource("MusicSource", true, 16, true);
         uiSource = EnsureChildSource("UiSource", false, 64, false);
         oneShotSource = EnsureChildSource("OneShotSource", false, 96, false);
         footstepLoopSource = EnsureChildSource("FootstepLoopSource", true, 80, false);
         brushLoopSource = EnsureChildSource("BrushLoopSource", true, 80, false);
+    }
+
+    private bool CanEnsureSources()
+    {
+#if UNITY_EDITOR
+        if (EditorUtility.IsPersistent(this) || PrefabUtility.IsPartOfPrefabAsset(gameObject))
+        {
+            return false;
+        }
+#endif
+
+        return gameObject.scene.IsValid();
     }
 
     private AudioSource EnsureChildSource(string childName, bool loop, int priority, bool ignoreListenerPause)

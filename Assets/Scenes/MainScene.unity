@@ -412,9 +412,9 @@ MonoBehaviour:
   targetPlayer: {fileID: 0}
   autoStartOnPlay: 1
   initializeGameOnStart: 1
-  startMenuSceneName: StartScene
-  victoryResultSceneName: StartScene
-  failureResultSceneName: StartScene
+  startMenuSceneName: OpenMenu
+  victoryResultSceneName: OpenMenu
+  failureResultSceneName: OpenMenu
   waveDefinitions:
   - name: Wave 1
     durationSeconds: 60
@@ -423,29 +423,29 @@ MonoBehaviour:
     enemyMoveSpeedMultiplier: 1
     spawnRateMultiplier: 1
   - name: Wave 2
-    durationSeconds: 65
-    enemyHealthMultiplier: 1.2
+    durationSeconds: 62
+    enemyHealthMultiplier: 1.1
     enemyDamageMultiplier: 1.1
     enemyMoveSpeedMultiplier: 1.05
     spawnRateMultiplier: 1.15
   - name: Wave 3
-    durationSeconds: 70
-    enemyHealthMultiplier: 1.4
+    durationSeconds: 65
+    enemyHealthMultiplier: 1.2
     enemyDamageMultiplier: 1.2
     enemyMoveSpeedMultiplier: 1.1
     spawnRateMultiplier: 1.3
   - name: Wave 4
-    durationSeconds: 75
-    enemyHealthMultiplier: 1.65
+    durationSeconds: 68
+    enemyHealthMultiplier: 1.3
     enemyDamageMultiplier: 1.35
     enemyMoveSpeedMultiplier: 1.2
     spawnRateMultiplier: 1.45
   - name: Wave 5
-    durationSeconds: 90
-    enemyHealthMultiplier: 2
+    durationSeconds: 75
+    enemyHealthMultiplier: 1.5
     enemyDamageMultiplier: 1.5
-    enemyMoveSpeedMultiplier: 1.3
-    spawnRateMultiplier: 1.6
+    enemyMoveSpeedMultiplier: 1.2
+    spawnRateMultiplier: 1.5
   resetSpawnerStateOnStart: 1
   resetSpawnerStateEachWave: 1
   enableEnemySpawnerOnStart: 1
@@ -501,7 +501,7 @@ MonoBehaviour:
   surroundingSampleRadius: 0.95
   surroundingSampleCount: 8
   dealDamageOverTime: 1
-  damagePerHit: 2
+  damagePerHit: 2.5
   damageInterval: 0.5
   modifyMoveSpeed: 1
   moveSpeedMultiplier: 0.6

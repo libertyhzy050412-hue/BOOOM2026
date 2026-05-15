@@ -17,20 +17,18 @@ public static class RewardSelectionSession
 
     private sealed class RewardDefinition
     {
-        public RewardDefinition(RewardType type, string displayName, string descriptionFormat, string iconResourcePath, bool requiresInkWeapon)
+        public RewardDefinition(RewardType type, string displayName, string descriptionFormat, string iconResourcePath)
         {
             Type = type;
             DisplayName = displayName;
             DescriptionFormat = descriptionFormat;
             IconResourcePath = iconResourcePath;
-            RequiresInkWeapon = requiresInkWeapon;
         }
 
         public RewardType Type { get; }
         public string DisplayName { get; }
         public string DescriptionFormat { get; }
         public string IconResourcePath { get; }
-        public bool RequiresInkWeapon { get; }
     }
 
     [Serializable]
@@ -63,11 +61,11 @@ public static class RewardSelectionSession
 
     private static readonly Dictionary<RewardType, RewardDefinition> RewardDefinitions = new Dictionary<RewardType, RewardDefinition>
     {
-        { RewardType.MaxHealth, new RewardDefinition(RewardType.MaxHealth, "小熊", "+{0} 最大生命值", "商店道具/生命值-小熊", false) },
-        { RewardType.AttackPower, new RewardDefinition(RewardType.AttackPower, "魔爪", "+{0}% 攻击力", "商店道具/攻击力·-魔爪", false) },
-        { RewardType.BrushInkCapacity, new RewardDefinition(RewardType.BrushInkCapacity, "颜料桶", "+{0} 颜料容量上限", "商店道具/脑容量最大值-桶", true) },
-        { RewardType.BrushInkRecovery, new RewardDefinition(RewardType.BrushInkRecovery, "枕头", "+{0}% 最大颜料/秒", "商店道具/脑容量恢复速度-枕头", true) },
-        { RewardType.MoveSpeed, new RewardDefinition(RewardType.MoveSpeed, "哥特风服饰", "+{0} 移动速度", "商店道具/移动速度-裙子", false) }
+        { RewardType.MaxHealth, new RewardDefinition(RewardType.MaxHealth, "小熊", "+{0} 最大生命值", "商店道具/生命值-小熊") },
+        { RewardType.AttackPower, new RewardDefinition(RewardType.AttackPower, "魔爪", "+{0}% 攻击力", "商店道具/攻击力·-魔爪") },
+        { RewardType.BrushInkCapacity, new RewardDefinition(RewardType.BrushInkCapacity, "颜料桶", "+{0} 颜料容量上限", "商店道具/脑容量最大值-桶") },
+        { RewardType.BrushInkRecovery, new RewardDefinition(RewardType.BrushInkRecovery, "枕头", "+{0}% 最大颜料/秒", "商店道具/脑容量恢复速度-枕头") },
+        { RewardType.MoveSpeed, new RewardDefinition(RewardType.MoveSpeed, "哥特风服饰", "+{0} 移动速度", "商店道具/移动速度-裙子") }
     };
 
     private static readonly Dictionary<RewardType, int> RewardStacks = new Dictionary<RewardType, int>();
@@ -95,20 +93,14 @@ public static class RewardSelectionSession
 
     public static List<RewardType> BuildRewardOffers(Player player, int offerCount)
     {
+        _ = player;
         List<RewardType> candidates = new List<RewardType>(AllRewardTypes.Length);
-        bool hasInkWeapon = player != null &&
-            (player.GetComponentInChildren<BrushWeapon>(true) != null || player.GetComponentInChildren<BowWeapon>(true) != null);
 
         for (int index = 0; index < AllRewardTypes.Length; index++)
         {
             RewardType rewardType = AllRewardTypes[index];
             RewardDefinition definition = GetDefinition(rewardType);
             if (definition == null)
-            {
-                continue;
-            }
-
-            if (definition.RequiresInkWeapon && !hasInkWeapon)
             {
                 continue;
             }

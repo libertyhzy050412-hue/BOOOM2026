@@ -3,6 +3,19 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class LevelTestGui : MonoBehaviour
 {
+    private static readonly Color RewardPanelFillColor = CreateColor(34, 38, 61, 0.96f);
+    private static readonly Color RewardCardFillColor = CreateColor(39, 44, 69, 0.98f);
+    private static readonly Color RewardOutlineColor = CreateColor(197, 145, 191, 0.34f);
+    private static readonly Color RewardDividerColor = CreateColor(197, 145, 191, 0.16f);
+    private static readonly Color RewardAccentColor = CreateColor(197, 145, 191);
+    private static readonly Color RewardAccentSoftColor = CreateColor(197, 145, 191, 0.72f);
+    private static readonly Color RewardTitleTextColor = CreateColor(236, 221, 239);
+    private static readonly Color RewardSubtitleTextColor = CreateColor(198, 189, 218);
+    private static readonly Color RewardStatTextColor = CreateColor(184, 177, 208);
+    private static readonly Color RewardStackTextColor = CreateColor(219, 169, 208);
+    private static readonly Color RewardButtonTextColor = CreateColor(44, 32, 52);
+    private static readonly Color RewardIconTintColor = CreateColor(229, 188, 223);
+
     [Header("Temporary Test HUD")]
     [SerializeField] private LevelManager levelManager;
     [SerializeField] private Player targetPlayer;
@@ -136,18 +149,29 @@ public sealed class LevelTestGui : MonoBehaviour
             return;
         }
 
-        SimpleGuiTheme.DrawOverlay(0.72f);
+        SimpleGuiTheme.DrawOverlay(0.76f);
 
-        Rect panelRect = SimpleGuiTheme.CenterRect(0.86f, 0.74f, SimpleGuiTheme.Scale(920f), SimpleGuiTheme.Scale(520f), SimpleGuiTheme.Scale(24f));
-        SimpleGuiTheme.DrawPanel(panelRect, SimpleGuiTheme.PanelFillLightColor);
+        Rect panelRect = SimpleGuiTheme.CenterRect(0.95f, 0.84f, SimpleGuiTheme.Scale(1280f), SimpleGuiTheme.Scale(620f), SimpleGuiTheme.Scale(12f));
+        DrawRewardSurface(panelRect, RewardPanelFillColor, RewardOutlineColor, true);
 
-        Rect contentRect = SimpleGuiTheme.Inset(panelRect, SimpleGuiTheme.Scale(28f), SimpleGuiTheme.Scale(26f));
-        Rect headerRect = new Rect(contentRect.x, contentRect.y, contentRect.width, SimpleGuiTheme.Scale(88f));
-        GUI.Label(new Rect(headerRect.x, headerRect.y, headerRect.width, SimpleGuiTheme.Scale(32f)), "波次完成", rewardTitleStyle);
-        GUI.Label(new Rect(headerRect.x, headerRect.y + SimpleGuiTheme.Scale(36f), headerRect.width, SimpleGuiTheme.Scale(22f)), $"当前波次: {GetPopupCurrentWaveText()}    下一波次: {GetPopupNextWaveText()}", rewardSubtitleStyle);
-        GUI.Label(new Rect(headerRect.x, headerRect.y + SimpleGuiTheme.Scale(58f), headerRect.width, SimpleGuiTheme.Scale(22f)), "选择一个奖励后将直接进入下一波。", rewardSubtitleStyle);
+        Rect contentRect = SimpleGuiTheme.Inset(panelRect, SimpleGuiTheme.Scale(26f), SimpleGuiTheme.Scale(20f));
+        GUIContent titleContent = new GUIContent("波次完成");
+        GUIContent progressContent = new GUIContent($"当前波次 {GetPopupCurrentWaveText()}    下一波 {GetPopupNextWaveText()}");
+        GUIContent hintContent = new GUIContent("选择一个奖励后将直接进入下一波。 ");
+        float titleHeight = rewardTitleStyle.CalcHeight(titleContent, contentRect.width);
+        float progressHeight = rewardSubtitleStyle.CalcHeight(progressContent, contentRect.width);
+        float hintHeight = rewardSubtitleStyle.CalcHeight(hintContent, contentRect.width);
+        float headerTop = contentRect.y + SimpleGuiTheme.Scale(6f);
+        Rect titleRect = new Rect(contentRect.x, headerTop, contentRect.width, titleHeight);
+        Rect progressRect = new Rect(contentRect.x, titleRect.yMax + SimpleGuiTheme.Scale(8f), contentRect.width, progressHeight);
+        Rect hintRect = new Rect(contentRect.x, progressRect.yMax + SimpleGuiTheme.Scale(4f), contentRect.width, hintHeight);
 
-        Rect cardsRect = new Rect(contentRect.x, headerRect.yMax + SimpleGuiTheme.Scale(16f), contentRect.width, contentRect.height - headerRect.height - SimpleGuiTheme.Scale(16f));
+        GUI.Label(titleRect, titleContent, rewardTitleStyle);
+        GUI.Label(progressRect, progressContent, rewardSubtitleStyle);
+        GUI.Label(hintRect, hintContent, rewardSubtitleStyle);
+
+        float headerBottom = hintRect.yMax + SimpleGuiTheme.Scale(18f);
+        Rect cardsRect = new Rect(contentRect.x, headerBottom, contentRect.width, Mathf.Max(0f, contentRect.yMax - headerBottom));
         DrawRewardCards(cardsRect);
     }
 
@@ -160,9 +184,9 @@ public sealed class LevelTestGui : MonoBehaviour
         }
 
         float gap = SimpleGuiTheme.Scale(18f);
-        int columnCount = rect.width >= SimpleGuiTheme.Scale(980f) ? 3 : rect.width >= SimpleGuiTheme.Scale(660f) ? 2 : 1;
+        int columnCount = rect.width >= SimpleGuiTheme.Scale(1040f) ? 3 : rect.width >= SimpleGuiTheme.Scale(720f) ? 2 : 1;
         int rowCount = Mathf.CeilToInt(rewardCount / (float)columnCount);
-        float preferredCardHeight = columnCount == 1 ? SimpleGuiTheme.Scale(210f) : SimpleGuiTheme.Scale(280f);
+        float preferredCardHeight = columnCount == 1 ? SimpleGuiTheme.Scale(360f) : SimpleGuiTheme.Scale(420f);
         float contentHeight = rowCount * preferredCardHeight + Mathf.Max(0, rowCount - 1) * gap;
         bool needsScroll = contentHeight > rect.height;
         float viewportWidth = rect.width - (needsScroll ? SimpleGuiTheme.Scale(18f) : 0f);
@@ -171,7 +195,7 @@ public sealed class LevelTestGui : MonoBehaviour
         if (!needsScroll && rowCount > 0)
         {
             float extraHeight = Mathf.Max(0f, rect.height - contentHeight);
-            preferredCardHeight += extraHeight / rowCount;
+            preferredCardHeight += extraHeight / Mathf.Max(1, rowCount) * 0.92f;
             contentHeight = rect.height;
         }
 
@@ -201,21 +225,44 @@ public sealed class LevelTestGui : MonoBehaviour
 
     private void DrawRewardCard(Rect cardRect, RewardType rewardType)
     {
-        SimpleGuiTheme.DrawPanel(cardRect, new Color(0.1f, 0.14f, 0.18f, 0.96f));
+        DrawRewardSurface(cardRect, RewardCardFillColor, RewardOutlineColor, false);
 
-        Rect contentRect = SimpleGuiTheme.Inset(cardRect, SimpleGuiTheme.Scale(18f), SimpleGuiTheme.Scale(16f));
-        float iconSize = Mathf.Min(Mathf.Min(contentRect.width * 0.42f, contentRect.height * 0.32f), SimpleGuiTheme.Scale(120f));
-        float buttonHeight = Mathf.Max(SimpleGuiTheme.Scale(44f), popupButtonHeight);
-        Rect iconRect = new Rect(contentRect.center.x - iconSize * 0.5f, contentRect.y, iconSize, iconSize);
-        Rect titleRect = new Rect(contentRect.x, iconRect.yMax + SimpleGuiTheme.Scale(10f), contentRect.width, SimpleGuiTheme.Scale(26f));
-        Rect stackRect = new Rect(contentRect.x, titleRect.yMax + SimpleGuiTheme.Scale(4f), contentRect.width, SimpleGuiTheme.Scale(18f));
-        Rect buttonRect = new Rect(contentRect.x, contentRect.yMax - buttonHeight, contentRect.width, buttonHeight);
-        Rect bodyRect = new Rect(contentRect.x, stackRect.yMax + SimpleGuiTheme.Scale(10f), contentRect.width, buttonRect.y - stackRect.yMax - SimpleGuiTheme.Scale(18f));
+        Rect contentRect = SimpleGuiTheme.Inset(cardRect, SimpleGuiTheme.Scale(18f), SimpleGuiTheme.Scale(18f));
+        float iconSize = Mathf.Min(Mathf.Min(contentRect.width * 0.38f, contentRect.height * 0.26f), SimpleGuiTheme.Scale(134f));
+        float buttonHeight = Mathf.Max(SimpleGuiTheme.Scale(54f), popupButtonHeight + SimpleGuiTheme.Scale(10f));
+        string displayName = RewardSelectionSession.GetDisplayName(rewardType);
+        string stackSummary = RewardSelectionSession.GetStackSummary(rewardType);
+        string description = RewardSelectionSession.GetDescription(rewardType);
+
+        GUIContent titleContent = new GUIContent(displayName);
+        GUIContent stackContent = new GUIContent(stackSummary);
+        GUIContent bodyContent = new GUIContent(description);
+
+        float titleHeight = Mathf.Max(SimpleGuiTheme.Scale(34f), rewardCardTitleStyle.CalcHeight(titleContent, contentRect.width));
+        float stackHeight = Mathf.Max(SimpleGuiTheme.Scale(20f), rewardStackStyle.CalcHeight(stackContent, contentRect.width));
+        float bodyHeight = Mathf.Max(SimpleGuiTheme.Scale(30f), rewardCardBodyStyle.CalcHeight(bodyContent, contentRect.width));
+        float dividerHeight = Mathf.Max(1f, SimpleGuiTheme.Scale(1.4f));
+        float iconGap = SimpleGuiTheme.Scale(16f);
+        float titleGap = SimpleGuiTheme.Scale(8f);
+        float stackGap = SimpleGuiTheme.Scale(8f);
+        float dividerGap = SimpleGuiTheme.Scale(16f);
+        float buttonGap = SimpleGuiTheme.Scale(24f);
+        float contentBlockHeight = iconSize + iconGap + titleHeight + titleGap + stackHeight + stackGap + dividerHeight + dividerGap + bodyHeight + buttonGap + buttonHeight;
+        float blockTop = contentRect.y + Mathf.Max(0f, (contentRect.height - contentBlockHeight) * 0.22f);
+
+        Rect iconRect = new Rect(contentRect.center.x - iconSize * 0.5f, blockTop, iconSize, iconSize);
+        Rect titleRect = new Rect(contentRect.x, iconRect.yMax + iconGap, contentRect.width, titleHeight);
+        Rect stackRect = new Rect(contentRect.x, titleRect.yMax + titleGap, contentRect.width, stackHeight);
+        float dividerWidth = contentRect.width * 0.58f;
+        Rect dividerRect = new Rect(contentRect.center.x - dividerWidth * 0.5f, stackRect.yMax + stackGap, dividerWidth, dividerHeight);
+        Rect bodyRect = new Rect(contentRect.x, dividerRect.yMax + dividerGap, contentRect.width, bodyHeight);
+        Rect buttonRect = new Rect(contentRect.x, bodyRect.yMax + buttonGap, contentRect.width, buttonHeight);
 
         DrawRewardIcon(iconRect, rewardType);
-        GUI.Label(titleRect, RewardSelectionSession.GetDisplayName(rewardType), rewardCardTitleStyle);
-        GUI.Label(stackRect, RewardSelectionSession.GetStackSummary(rewardType), rewardStackStyle);
-        GUI.Label(bodyRect, RewardSelectionSession.GetDescription(rewardType), rewardCardBodyStyle);
+        GUI.Label(titleRect, titleContent, rewardCardTitleStyle);
+        GUI.Label(stackRect, stackContent, rewardStackStyle);
+        SimpleGuiTheme.DrawSolidRect(dividerRect, RewardDividerColor);
+        GUI.Label(bodyRect, bodyContent, rewardCardBodyStyle);
 
         if (GuiAudioButton.Button($"Reward/{rewardType}", buttonRect, "选择这个奖励", rewardButtonStyle))
         {
@@ -225,15 +272,49 @@ public sealed class LevelTestGui : MonoBehaviour
 
     private void DrawRewardIcon(Rect rect, RewardType rewardType)
     {
+        Rect glowRect = new Rect(
+            rect.x - SimpleGuiTheme.Scale(10f),
+            rect.y - SimpleGuiTheme.Scale(10f),
+            rect.width + SimpleGuiTheme.Scale(20f),
+            rect.height + SimpleGuiTheme.Scale(20f));
+        SimpleGuiTheme.DrawSolidRect(glowRect, CreateColor(197, 145, 191, 0.045f));
+
         Sprite icon = RewardSelectionSession.GetIcon(rewardType);
         if (icon == null)
         {
-            SimpleGuiTheme.DrawSolidRect(rect, new Color(1f, 1f, 1f, 0.05f));
+            SimpleGuiTheme.DrawSolidRect(rect, CreateColor(255, 255, 255, 0.05f));
             GUI.Label(rect, RewardSelectionSession.GetDisplayName(rewardType), rewardMissingIconStyle);
             return;
         }
 
-        SimpleGuiTheme.DrawSprite(icon, rect, Color.white);
+        SimpleGuiTheme.DrawSprite(icon, rect, RewardIconTintColor);
+    }
+
+    private void DrawRewardSurface(Rect rect, Color fillColor, Color outlineColor, bool drawTopAccent)
+    {
+        float shadowOffset = SimpleGuiTheme.Scale(10f);
+        SimpleGuiTheme.DrawSolidRect(
+            new Rect(rect.x + shadowOffset, rect.y + shadowOffset, rect.width, rect.height),
+            new Color(0f, 0f, 0f, 0.18f));
+        SimpleGuiTheme.DrawSolidRect(rect, fillColor);
+
+        if (drawTopAccent)
+        {
+            float accentHeight = Mathf.Max(SimpleGuiTheme.Scale(4f), 3f);
+            SimpleGuiTheme.DrawSolidRect(
+                new Rect(rect.x, rect.y, rect.width, accentHeight),
+                RewardAccentSoftColor);
+        }
+
+        DrawRewardOutline(rect, outlineColor, Mathf.Max(1f, SimpleGuiTheme.Scale(1.5f)));
+    }
+
+    private static void DrawRewardOutline(Rect rect, Color color, float thickness)
+    {
+        SimpleGuiTheme.DrawSolidRect(new Rect(rect.x, rect.y, rect.width, thickness), color);
+        SimpleGuiTheme.DrawSolidRect(new Rect(rect.x, rect.yMax - thickness, rect.width, thickness), color);
+        SimpleGuiTheme.DrawSolidRect(new Rect(rect.x, rect.y, thickness, rect.height), color);
+        SimpleGuiTheme.DrawSolidRect(new Rect(rect.xMax - thickness, rect.y, thickness, rect.height), color);
     }
 
     private void DrawHealthBar(Rect rect, string valueText, float normalizedValue)
@@ -367,18 +448,18 @@ public sealed class LevelTestGui : MonoBehaviour
             new Color32(226, 172, 208, 255),
             new Color32(66, 22, 52, 255));
 
-        rewardTitleStyle = SimpleGuiTheme.CreateLabelStyle(28, FontStyle.Bold, TextAnchor.UpperCenter, SimpleGuiTheme.TextPrimaryColor, true);
-        rewardSubtitleStyle = SimpleGuiTheme.CreateLabelStyle(16, FontStyle.Normal, TextAnchor.UpperCenter, SimpleGuiTheme.TextSecondaryColor, true);
-        rewardCardTitleStyle = SimpleGuiTheme.CreateLabelStyle(22, FontStyle.Bold, TextAnchor.UpperCenter, SimpleGuiTheme.TextPrimaryColor, true);
-        rewardCardBodyStyle = SimpleGuiTheme.CreateLabelStyle(16, FontStyle.Normal, TextAnchor.UpperCenter, SimpleGuiTheme.TextSecondaryColor, true);
-        rewardStackStyle = SimpleGuiTheme.CreateLabelStyle(14, FontStyle.Bold, TextAnchor.UpperCenter, SimpleGuiTheme.AccentColor, false);
+        rewardTitleStyle = SimpleGuiTheme.CreateLabelStyle(36, FontStyle.Bold, TextAnchor.UpperCenter, RewardTitleTextColor, true);
+        rewardSubtitleStyle = SimpleGuiTheme.CreateLabelStyle(20, FontStyle.Normal, TextAnchor.UpperCenter, RewardSubtitleTextColor, true);
+        rewardCardTitleStyle = SimpleGuiTheme.CreateLabelStyle(28, FontStyle.Bold, TextAnchor.UpperCenter, RewardTitleTextColor, true);
+        rewardCardBodyStyle = SimpleGuiTheme.CreateLabelStyle(20, FontStyle.Bold, TextAnchor.UpperCenter, RewardStatTextColor, true);
+        rewardStackStyle = SimpleGuiTheme.CreateLabelStyle(16, FontStyle.Normal, TextAnchor.UpperCenter, RewardStackTextColor, false);
         rewardButtonStyle = SimpleGuiTheme.CreateButtonStyle(
-            17,
-            new Color32(226, 172, 208, 255),
-            new Color32(226, 172, 208, 255),
-            new Color32(226, 172, 208, 255),
-            new Color32(66, 22, 52, 255));
-        rewardMissingIconStyle = SimpleGuiTheme.CreateLabelStyle(13, FontStyle.Bold, TextAnchor.MiddleCenter, SimpleGuiTheme.TextSecondaryColor, true);
+            19,
+            RewardAccentColor,
+            CreateColor(212, 163, 207),
+            CreateColor(181, 129, 175),
+            RewardButtonTextColor);
+        rewardMissingIconStyle = SimpleGuiTheme.CreateLabelStyle(15, FontStyle.Bold, TextAnchor.MiddleCenter, RewardSubtitleTextColor, true);
     }
 
     private void OnValidate()
@@ -390,5 +471,10 @@ public sealed class LevelTestGui : MonoBehaviour
         popupHeight = Mathf.Max(180f, popupHeight);
         popupButtonWidth = Mathf.Max(120f, popupButtonWidth);
         popupButtonHeight = Mathf.Max(32f, popupButtonHeight);
+    }
+
+    private static Color CreateColor(byte red, byte green, byte blue, float alpha = 1f)
+    {
+        return new Color(red / 255f, green / 255f, blue / 255f, Mathf.Clamp01(alpha));
     }
 }
