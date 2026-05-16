@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3082040216016884178}
   - component: {fileID: 804503144097626695}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Summon1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -73,7 +73,7 @@ GameObject:
   m_Component:
   - component: {fileID: 9185621485662057016}
   - component: {fileID: 3067029326002507008}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: "\u8FDC\u7A0B\u602A-\u773C\u775B_0"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
