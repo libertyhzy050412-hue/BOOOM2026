@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 6434574282328657266}
   - component: {fileID: 7360037726447821854}
   - component: {fileID: 1233853226495088185}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -208,7 +208,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3008661168985632367}
   - component: {fileID: 6754860942079766424}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: HurtCollider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -278,7 +278,7 @@ GameObject:
   - component: {fileID: 7621980984274982049}
   - component: {fileID: 8490680407693582616}
   - component: {fileID: 8641872180840318161}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: spriteArrow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -391,7 +391,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2631017527929300154}
   - component: {fileID: 4698703477554726055}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -523,6 +523,10 @@ PrefabInstance:
     - target: {fileID: 4016453631583081231, guid: bd6e7f16f6da9824ba79032c0a7db90c, type: 3}
       propertyPath: m_Name
       value: BowWeapon
+      objectReference: {fileID: 0}
+    - target: {fileID: 4016453631583081231, guid: bd6e7f16f6da9824ba79032c0a7db90c, type: 3}
+      propertyPath: m_Layer
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 7036946373180897376, guid: bd6e7f16f6da9824ba79032c0a7db90c, type: 3}
       propertyPath: attackAnimator

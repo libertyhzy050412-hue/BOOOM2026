@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4752717195001330003}
   - component: {fileID: 7176371658608816327}
   - component: {fileID: 3948326458310658325}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Particle System
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4905,7 +4905,7 @@ GameObject:
   - component: {fileID: 680492561032152298}
   - component: {fileID: 544113106561383493}
   - component: {fileID: 6309135137040464821}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Particle System2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -9743,7 +9743,7 @@ GameObject:
   - component: {fileID: 3124245491261152034}
   - component: {fileID: 6622767307190761209}
   - component: {fileID: 8397797360375559176}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Normal
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -9877,7 +9877,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2315649143985051500}
   - component: {fileID: 5086064117489061859}
-  m_Layer: 1
+  m_Layer: 7
   m_Name: Background
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -9968,7 +9968,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4879588056442782420}
   - component: {fileID: 3816864077111840838}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: "\u51B2\u950B\u602A-\u670B\u53CB\u5708_0"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
